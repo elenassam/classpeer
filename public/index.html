@@ -46,6 +46,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .bar::before{content:"";display:block;height:4px;background:var(--rainbow)}
 .bar-in{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .brand{background:none;border:0;padding:0;font-family:var(--f-display);font-size:21px;cursor:pointer;color:var(--fg)}
+.madeby{font-size:11px;color:var(--muted);opacity:.7;letter-spacing:.02em;margin-left:-4px;white-space:nowrap}
 .role{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted);letter-spacing:.04em}
 .role.t{background:var(--accent-soft);color:var(--accent)}
 .grow{flex:1}
@@ -513,7 +514,7 @@ function render(){
 function topBar(){
   const role = S.teacher ? (S.preview?'학생 화면 미리보기':'교사') : '학생';
   return `<header class="bar"><div class="bar-in">
-    <button class="brand" data-act="home">발표 상호평가</button>
+    <button class="brand" data-act="home">발표 상호평가</button><span class="madeby">made by. 수진쌤</span>
     ${(S.roleView||S.loginView)?'':`<span class="role ${S.teacher&&!S.preview?'t':''}">${role}</span>`}
     <span class="grow"></span>
     ${S.teacher?`<button class="btn ghost sm" data-act="togglePreview">${S.preview?'교사 화면으로 돌아가기':'학생 화면 미리보기'}</button><button class="btn ghost sm" data-act="teacherLogout">로그아웃</button>`:((S.roleView||S.loginView||!S.ready)?'':`<button class="btn ghost sm" data-act="toRoleScreen">처음 화면</button>`)}

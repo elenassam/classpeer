@@ -330,7 +330,7 @@ const DEF_RUBRIC = {
   ]
 };
 const STATUS = {ready:['발표 전','st-ready'], open:['평가 중','st-open'], closed:['마감','st-closed']};
-const REASON_MIN = 5;
+const REASON_MIN = 10;
 let SHARE_URL = '';
 const linkFor = cid=>SHARE_URL+'?class='+encodeURIComponent(cid);
 const teacherLink = ()=>SHARE_URL+'?mode=teacher';
@@ -695,7 +695,7 @@ function tDash(cls){
   const [lab,pc]=STATUS[st.sess.status||'ready'];
   const commentList=(list,max)=>list.length?list.map(c=>`<div class="cmt ${c.flagged&&fOn?'flag':''} ${c.hidden?'hidden':''}">
       <span class="score-badge" title="이 학생이 준 점수 합계">${c.score??'–'}</span>
-      <div><div class="txt">${esc(c.text)}</div><div class="who">${esc(c.who)} · 준 점수 ${c.score??'–'}/${max} ${c.flagged&&fOn?'<span class="tag flag">필터에 걸림 · 리포트 제외</span>':''} ${c.hidden?'<span class="tag">숨김 · 리포트 제외</span>':''}</div></div>
+      <div><div class="txt">${esc(c.text)}</div><div class="who">${esc(c.who)} · 내용·구성 점수 ${c.score??'–'}/${max} ${c.flagged&&fOn?'<span class="tag flag">필터에 걸림 · 리포트 제외</span>':''} ${c.hidden?'<span class="tag">숨김 · 리포트 제외</span>':''}</div></div>
       <button class="btn sm ghost" data-act="toggleHide" data-key="${esc(c.key)}">${c.hidden?'다시 보이기':'숨기기'}</button>
     </div>`).join(''):`<p class="muted small">아직 의견이 없어요.</p>`;
   return `<div class="stack">
@@ -724,10 +724,9 @@ function tDash(cls){
       </section>
     </div>
     <section class="stack">
-      <h3 class="h3">학생 의견 <span class="muted small">선생님만 볼 수 있어요. 평가자 이름은 리포트에 나가지 않아요.</span></h3>
+      <h3 class="h3">종합 의견 <span class="muted small">선생님만 볼 수 있어요. 평가자 이름은 리포트에 나가지 않아요.</span></h3>
       <div class="two">
-        <div class="cgroup"><strong>내용·구성</strong>${commentList(st.contentComments, st.contentMax)}</div>
-        <div class="cgroup"><strong>발표</strong>${st.speaking.map(s=>`<details class="more" open><summary>${esc(s.sp.name)}</summary><div class="cgroup">${commentList(s.comments, s.totalMax)}</div></details>`).join('')}</div>
+        <div class="cgroup" style="grid-column:1 / -1">${commentList(st.contentComments, st.contentMax)}</div>
       </div>
     </section>
   </div>`;
@@ -865,7 +864,7 @@ function reportPreviewHTML(){ const rep=buildReport(S.reportDraft.sid, S.reportD
 
 function renderReport(rep){
   const bar=(x)=>`<div class="barrow"><span class="lab">${esc(x.name)}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.max}</span></div>`;
-  const quotes=(arr)=>arr&&arr.length?`<details class="more"><summary>친구들의 의견 ${arr.length}개 보기</summary><ul class="quotes" style="margin-top:10px">${arr.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details>`:'';
+  const quotes=(arr)=>arr&&arr.length?`<details class="more"><summary>친구들의 종합 의견 ${arr.length}개 보기</summary><ul class="quotes" style="margin-top:10px">${arr.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details>`:'';
   return `<article class="report">
     <header><span class="eyebrow">종합 피드백 리포트</span><h1>${esc(rep.title)}</h1><p class="muted small">${rep.topic?esc(rep.topic)+' · ':''}친구 ${rep.n}명이 평가했어요</p></header>
     <section>
@@ -952,11 +951,11 @@ function evalProgress(){
   let total=0, done=0; const missing=[];
   const okR=t=>(t||'').trim().length>=REASON_MIN;
   for(const c of R.content){ total++; const v=d.content[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`내용·구성 – ${c.name} 점수`); }
-  total++; if(okR(d.contentReason)) done++; else missing.push('내용·구성 근거');
+
   for(const sp of (sess.speakers||[]).filter(x=>!x.absent)){
     for(const c of R.speaking){ total++; const v=d.speaking[sp.id]?.[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`${sp.name} – ${c.name} 점수`); }
-    total++; if(okR(d.speakerReasons[sp.id])) done++; else missing.push(`${sp.name} 근거`);
   }
+  total++; if(okR(d.contentReason)) done++; else missing.push('종합 의견');
   return {total, done, missing};
 }
 function sEval(){
@@ -974,21 +973,22 @@ function sEval(){
     <div class="lvls" role="radiogroup" aria-label="${esc(c.name)}">${scoresOf(c).map(s=>`<label class="lvl"><input type="radio" name="${nameKey}" value="${s}" data-ev="${path}" ${v&&v.score===s?'checked':''}><span class="score-badge">${s}</span><span class="d">${esc(c.levels[s]||'')}</span></label>`).join('')}</div>
   </div>`;
   const reasonHTML=(id,path,label,val)=>`<div class="card stack ${missR(val)?'reason-miss':''}" style="gap:8px;background:var(--surface-2)">
-    <label class="fld">${label}<textarea id="${id}" data-evr="${path}" rows="4" placeholder="위 점수를 준 이유를 발표에서 본 장면을 예로 들어 구체적으로 적어 주세요.">${esc(val||'')}</textarea></label></div>`;
+    <label class="fld">${label}<textarea id="${id}" data-evr="${path}" rows="4" placeholder="예) 슬라이드가 그림 위주라 이해하기 쉬웠고, 발표자들이 청중을 보며 또박또박 말해서 잘 들렸어요. 다만 홍보 전략이 조금 더 구체적이면 좋겠어요.">${esc(val||'')}</textarea></label></div>`;
   const pg=evalProgress();
   return `<main class="wrap narrow">
     <button class="btn ghost sm" data-act="sCancelEval" style="align-self:flex-start">← 목록으로</button>
     <section class="stack" style="gap:6px"><span class="eyebrow">${esc(cls.name)} · 동료 평가</span><h1>${esc(sess.title)}</h1>${sess.topic?`<p class="muted">${esc(sess.topic)}</p>`:''}</section>
-    <div class="note info">항목마다 점수를 고르고, 근거는 '내용·구성'에 한 번, 발표자마다 한 번씩 적어 주세요. 평가 내용은 선생님만 보고, 친구들에게는 선생님이 정리한 리포트만 보여 줘요. 친구가 읽는다고 생각하고 존중하는 말로 써 주세요.</div>
+    <div class="note info">항목마다 점수를 고르고, 맨 아래에 이 모둠 발표에 대한 종합 의견을 한 문장 이상 적어 주세요. 평가 내용은 선생님만 보고, 친구들에게는 선생님이 정리한 리포트만 보여 줘요. 친구가 읽는다고 생각하고 존중하는 말로 써 주세요.</div>
     ${S.preview?`<div class="note">미리보기 화면이에요. 제출해도 저장되지 않아요.</div>`:''}
     <section class="stack"><h2>내용·구성 <span class="muted small">모둠 전체 평가</span></h2>
       ${R.content.map(c=>critHTML(c, d.content[c.id], `c-${c.id}`, `c|${c.id}`)).join('')}
-      ${reasonHTML('r-content','c','내용·구성 점수의 근거',d.contentReason)}</section>
+</section>
     <section class="stack"><h2>발표 <span class="muted small">발표자마다 따로 평가</span></h2>
       ${(sess.speakers||[]).filter(x=>!x.absent).map(sp=>`<div class="spkblock"><div class="spkname"><span class="av">${esc((sp.name||'?').slice(0,1))}</span>${esc(sp.name)}</div>
-        ${R.speaking.map(c=>critHTML(c, d.speaking[sp.id]?.[c.id], `s-${sp.id}-${c.id}`, `s|${sp.id}|${c.id}`)).join('')}
-        ${reasonHTML('r-sp-'+sp.id,'s|'+sp.id,`${esc(sp.name)}의 발표 점수 근거`,d.speakerReasons[sp.id])}</div>`).join('')}</section>
-    <div id="evErr" class="err-list">${S.evalTried&&pg.missing.length?`아직 덜 채운 항목: ${esc(pg.missing.join(', '))} (근거는 ${REASON_MIN}자 이상)`:''}</div>
+        ${R.speaking.map(c=>critHTML(c, d.speaking[sp.id]?.[c.id], `s-${sp.id}-${c.id}`, `s|${sp.id}|${c.id}`)).join('')}</div>`).join('')}</section>
+    <section class="stack"><h2>종합 의견 <span class="muted small">내용 + 발표</span></h2>
+      ${reasonHTML('r-content','c','이 모둠 발표에서 잘한 점과 더 좋아질 점을 한 문장 이상 적어 주세요.',d.contentReason)}</section>
+    <div id="evErr" class="err-list">${S.evalTried&&pg.missing.length?`아직 덜 채운 항목: ${esc(pg.missing.join(', '))} (종합 의견은 ${REASON_MIN}자 이상)`:''}</div>
     <div class="submitbar">
       <div class="prog"><span id="evProgTxt">${pg.done} / ${pg.total} 항목 완료</span><div class="track"><div class="fill" id="evProgBar" style="width:${pg.total?pg.done/pg.total*100:0}%"></div></div></div>
       <button class="btn primary" data-act="sSubmitEval">${prof?.items?.[sid]?'수정 내용 제출':'평가 제출'}</button>
@@ -1234,7 +1234,7 @@ function setEval(path,field,val){
     let o; if(p[0]==='c'){ o=d.content[p[1]]=d.content[p[1]]||{}; } else { d.speaking[p[1]]=d.speaking[p[1]]||{}; o=d.speaking[p[1]][p[2]]=d.speaking[p[1]][p[2]]||{}; }
     o[field]=val; }
   const pg=evalProgress(); const tx=$('#evProgTxt'); if(tx) tx.textContent=`${pg.done} / ${pg.total} 항목 완료`; const b=$('#evProgBar'); if(b) b.style.width=(pg.total?pg.done/pg.total*100:0)+'%';
-  if(S.evalTried){ const er=$('#evErr'); if(er) er.textContent=pg.missing.length?`아직 덜 채운 항목: ${pg.missing.join(', ')} (근거는 ${REASON_MIN}자 이상)`:''; }
+  if(S.evalTried){ const er=$('#evErr'); if(er) er.textContent=pg.missing.length?`아직 덜 채운 항목: ${pg.missing.join(', ')} (종합 의견은 ${REASON_MIN}자 이상)`:''; }
 }
 
 /* ---------- boot ---------- */

@@ -181,6 +181,29 @@ async function main() {
         case 'sync': result = sync(b, w); break;
         case 'set': case 'update': case 'delete': result = await write([{ op: b.op, path: b.path, data: b.data }], w); break;
         case 'batch': result = await write(b.writes, w); break;
+        case 'resetItems': {
+          // 교사 전용: 한 발표(sid)에 대한 학생 평가를 서버에 있는 것까지 한 번에 지움 (uids가 있으면 그 학생만)
+          if (!w.teacher) throw new ApiError('permission_denied', 403);
+          const seg = /^[A-Za-z0-9_\-.~:@+]{1,120}$/;
+          if (!seg.test(String(b.cid || '')) || !seg.test(String(b.sid || ''))) throw new ApiError('invalid_argument');
+          const only = Array.isArray(b.uids) ? new Set(b.uids.map(String)) : null;
+          result = await serial(async () => {
+            let removed = 0;
+            for (const [p, v] of [...store.mem]) {
+              if (!p.startsWith('evals/') || p.split('/').length !== 2) continue;
+              if (only && !only.has(p.slice(6))) continue;
+              const items = v && v.byClass && v.byClass[b.cid] && v.byClass[b.cid].items;
+              if (!items || !items[b.sid]) continue;
+              const doc = JSON.parse(JSON.stringify(v));
+              delete doc.byClass[b.cid].items[b.sid];
+              doc.updatedAt = new Date().toISOString();
+              await store.put(p, doc); removed++;
+            }
+            version = newVersion();
+            return { removed };
+          });
+          break;
+        }
         default: throw new ApiError('invalid_argument');
       }
       res.json(result);

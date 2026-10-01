@@ -1062,11 +1062,11 @@ const A = {
     if(await run(()=>S.db.doc('cfg/root/classes/'+cid).update({roster}),`명단 ${roster.length}명을 저장했어요.`)){ S.classes[cid]={...S.classes[cid],roster}; S.rosterDraft=null; render(); } },
   async resetSession(el){ const sid=el.dataset.id, sess=S.sessions[sid]; S.confirm=null; if(!sess) return;
     const ok=await run(async()=>{
+      await S.db.doc('cfg/root/sessions/'+sid).update({status:'ready'});
       await removeItems(sess.classId, sid, null);
       const mod=S.mods[sess.classId]&&S.mods[sess.classId].hidden;
       if(mod){ const keep={}; for(const k in mod) if(!k.includes('|'+sid+'|')&&!k.endsWith('|'+sid+'|c')) keep[k]=mod[k]; await S.db.doc('drafts/root/mod/'+sess.classId).set({hidden:keep}); }
       await S.db.doc('drafts/root/reports/'+sid).delete(); await S.db.doc('cfg/root/reports/'+sid).delete();
-      await S.db.doc('cfg/root/sessions/'+sid).update({status:'ready'});
     },`'${sess.title}' 평가를 초기화했어요. '평가 시작'을 누르면 다시 열려요.`);
     if(ok && S.reportDraft && S.reportDraft.sid===sid) S.reportDraft=null;
     render(); },
@@ -1171,12 +1171,9 @@ ${JSON.stringify(data)}`;
 };
 function resetDrafts(){ S.rosterDraft=null; S.rubricDraft=null; S.sessionForm=null; S.evalDraft=null; S.profileDraft=null; S.reportDraft=null; S.confirm=null; S.renaming=false; }
 async function removeItems(cid, sid, onlyUid){
-  for(const [uid,d] of Object.entries(S.evals)){
-    if(onlyUid&&!String(onlyUid).split(',').includes(uid)) continue;
-    if(!(d.byClass&&d.byClass[cid]&&d.byClass[cid].items&&d.byClass[cid].items[sid])) continue;
-    const ref=S.db.doc('evals/'+uid); const snap=await ref.get(); if(!snap.exists) continue;
-    const nd=clone(snap.data()); if(nd.byClass&&nd.byClass[cid]&&nd.byClass[cid].items){ delete nd.byClass[cid].items[sid]; nd.updatedAt=nowISO(); await ref.set(nd); }
-  }
+  const r=await apiCall('resetItems',{cid,sid,uids:onlyUid?String(onlyUid).split(','):null});
+  if(S.db) S.db.kick(true);
+  return r;
 }
 async function saveReportDraft(msg){
   const r=S.reportDraft; const sess=S.sessions[r.sid];

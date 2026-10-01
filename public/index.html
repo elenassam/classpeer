@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발표 상호평가</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: one working column (max 1100px) under a slim app bar; rubric levels drawn like a printed 채점기준표; scores in mono */
+:root{
+  --bg:#F6F4FD; --surface:#FFFFFF; --surface-2:#EEEBFA; --line:#DCD6F2; --fg:#221B3A; --muted:#665E80;
+  --accent:#6A4BD6; --accent-fg:#FFFFFF; --accent-soft:#ECE6FD;
+  --sky:#2C9AD4; --sky-soft:#E0F1FB; --lime:#8CCB3E;
+  --pen:#D23C7E; --pen-soft:#FDE6F0; --hl:#C8EC8E; --hl-fg:#20320A; --ok:#4A8A16; --ok-soft:#E4F5D0; --warn:#9A6400; --warn-soft:#FBEFD2;
+  --rainbow:linear-gradient(90deg,#6A4BD6 0%,#2C9AD4 36%,#8CCB3E 68%,#E9609F 100%);
+  --f-display:"Do Hyeon","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14111D; --surface:#1C1828; --surface-2:#262136; --line:#3A3352; --fg:#ECE8F7; --muted:#A79FC0;
+  --accent:#A58BFF; --accent-fg:#160F2C; --accent-soft:#2D2550; --sky:#6CC6F2; --sky-soft:#173246; --lime:#A9D86A;
+  --pen:#FF86BC; --pen-soft:#3E1A2D; --hl:#A9D86A; --hl-fg:#14200A; --ok:#9AD95C; --ok-soft:#1F3315; --warn:#E8BA55; --warn-soft:#3A2F17;
+  --rainbow:linear-gradient(90deg,#A58BFF 0%,#6CC6F2 36%,#A9D86A 68%,#FF86BC 100%);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14111D; --surface:#1C1828; --surface-2:#262136; --line:#3A3352; --fg:#ECE8F7; --muted:#A79FC0;
+  --accent:#A58BFF; --accent-fg:#160F2C; --accent-soft:#2D2550; --sky:#6CC6F2; --sky-soft:#173246; --lime:#A9D86A;
+  --pen:#FF86BC; --pen-soft:#3E1A2D; --hl:#A9D86A; --hl-fg:#14200A; --ok:#9AD95C; --ok-soft:#1F3315; --warn:#E8BA55; --warn-soft:#3A2F17;
+  --rainbow:linear-gradient(90deg,#A58BFF 0%,#6CC6F2 36%,#A9D86A 68%,#FF86BC 100%);
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:30px} h2{font-size:22px} .h3{font-size:18px}
+p{margin:0}
+.muted{color:var(--muted)} .small{font-size:13px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar::before{content:"";display:block;height:4px;background:var(--rainbow)}
+.bar-in{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{background:none;border:0;padding:0;font-family:var(--f-display);font-size:21px;cursor:pointer;color:var(--fg)}
+.role{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted);letter-spacing:.04em}
+.role.t{background:var(--accent-soft);color:var(--accent)}
+.grow{flex:1}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:16px;padding-block:24px 96px;display:flex;flex-direction:column;gap:20px}
+.wrap.narrow{max-width:780px}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--pen);border-color:var(--pen)}
+.btn.danger.solid{background:var(--pen);color:var(--surface)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;width:30px;height:30px;cursor:pointer;display:inline-grid;place-items:center;font-size:14px}
+.icon-btn:disabled{opacity:.35;cursor:default}
+
+input[type=text],input[type=number],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+textarea{width:100%;resize:vertical;line-height:1.55}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+label.fld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500}
+label.fld > input,label.fld > select{color:var(--fg);font-size:15px}
+
+.row{display:flex;gap:10px;align-items:center}
+.wrapr{flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:28px 18px;text-align:center;color:var(--muted)}
+.note{background:var(--warn-soft);color:var(--fg);border-radius:8px;padding:10px 14px;font-size:14px}
+.note.info{background:var(--sky-soft)}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-ready{background:var(--surface-2);color:var(--muted)}
+.st-open{background:var(--ok-soft);color:var(--ok)}
+.st-closed{background:var(--warn-soft);color:var(--warn)}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:5px;background:var(--surface-2);color:var(--muted)}
+.tag.flag{background:var(--pen-soft);color:var(--pen);font-weight:600}
+
+/* class grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.ccard{display:flex;flex-direction:column;gap:10px}
+.ccard h3{font-size:22px}
+.ccard{border-top:4px solid var(--accent)}
+.grid > .ccard:nth-child(4n+2){border-top-color:var(--sky)}
+.grid > .ccard:nth-child(4n+3){border-top-color:var(--lime)}
+.grid > .ccard:nth-child(4n+4){border-top-color:var(--pen)}
+.ccard .meta{display:flex;gap:14px;font-size:13px;color:var(--muted)}
+.ccard .acts{display:flex;gap:8px;margin-top:auto;flex-wrap:wrap}
+
+/* tabs */
+.classhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;font-weight:600;color:var(--muted);white-space:nowrap}
+.tab[aria-selected=true]{color:var(--fg);border-color:var(--accent)}
+
+/* sessions */
+.slist{display:flex;flex-direction:column;gap:10px}
+.srow{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.srow .ord{display:flex;flex-direction:column;gap:4px}
+.srow .body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.srow .title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.srow .title strong{font-size:17px}
+.spk{display:flex;gap:6px;flex-wrap:wrap}
+.spk span{font-size:13px;background:var(--surface-2);border-radius:5px;padding:1px 8px}
+.spbtn{font-size:13px;background:var(--surface-2);border:1px solid transparent;border-radius:5px;padding:2px 9px;cursor:pointer}
+.spbtn:hover{border-color:var(--muted)}
+.spbtn.absent{background:var(--pen-soft);color:var(--pen);text-decoration:line-through;text-decoration-thickness:1px}
+table.stu tr.absent td{color:var(--muted)}
+.srow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.srow{grid-template-columns:1fr}.srow .ord{flex-direction:row}.srow .acts{justify-content:flex-start}}
+.sform{border-color:var(--accent);display:flex;flex-direction:column;gap:14px}
+.sform .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.sform .grid2{grid-template-columns:1fr}}
+
+/* rubric editor */
+.rsec{display:flex;flex-direction:column;gap:14px}
+.rsec-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.crit-ed{display:flex;flex-direction:column;gap:12px}
+.crit-top{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.crit-top .name{flex:1 1 220px}
+.crit-top .name input{width:100%}
+.crit-top input[type=number]{width:80px}
+.rtable{width:100%;border-collapse:collapse}
+.rtable td{border-top:1px solid var(--line);padding:8px 0;vertical-align:top}
+.rtable td.sc{width:64px;padding-right:12px}
+.score-badge{display:inline-grid;place-items:center;min-width:40px;height:34px;border-radius:7px;background:var(--hl);color:var(--hl-fg);font-family:var(--f-mono);font-weight:500;font-size:16px}
+.rtable textarea{min-height:44px}
+.rtable td.del{width:40px;padding-left:8px}
+.score-in{width:56px;text-align:center;font-family:var(--f-mono);font-size:16px;background:var(--hl)!important;color:var(--hl-fg);border-color:transparent!important}
+.savebar{position:sticky;bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.06)}
+.switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:600}
+.switch input{appearance:none;width:44px;height:24px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:background .15s;margin:0;flex:none}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(20px)}
+
+/* dashboard */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 14px;cursor:pointer;font-weight:500;display:inline-flex;gap:8px;align-items:center}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.chip .n{font-family:var(--f-mono);font-size:12px;opacity:.75}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi .k{font-size:13px;color:var(--muted);font-weight:500}
+.kpi .v{font-family:var(--f-mono);font-size:26px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:14px;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:14px}
+.barrow{display:grid;grid-template-columns:minmax(110px,180px) 1fr 76px;gap:12px;align-items:center}
+.barrow .lab{font-weight:600;min-width:0}
+.track{height:12px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.fill{height:100%;background:var(--sky);border-radius:99px}
+.barrow .val{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.dist{grid-column:2 / 4;display:flex;gap:6px;flex-wrap:wrap;margin-top:-6px}
+.dist span{font-family:var(--f-mono);font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:4px;padding:0 6px}
+@media (max-width:560px){.barrow{grid-template-columns:1fr 64px}.barrow .track{grid-column:1 / 3;grid-row:2}.dist{grid-column:1 / 3;margin-top:0}}
+.tblwrap{overflow-x:auto}
+table.data{border-collapse:collapse;width:100%;font-size:14px}
+table.data th,table.data td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+table.data th{font-size:12px;color:var(--muted);font-weight:600}
+table.data td.num{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+table.data th.num{text-align:right}
+table.stu td,table.stu th{padding:9px 12px}
+table.stu .sub{background:var(--surface-2);font-weight:600}
+table.stu tr.band th{border-bottom:0;padding-bottom:0;font-size:11px;letter-spacing:.06em}
+table.stu .bandc,table.stu .bands{text-align:center;border-bottom:2px solid var(--accent)!important;color:var(--accent)}
+table.stu .bands{border-bottom-color:var(--pen)!important;color:var(--pen)}
+table.stu .bandc{border-bottom-color:var(--sky)!important;color:var(--sky)}
+table.stu tr.grp td{background:var(--bg);padding-top:14px;white-space:normal}
+table.stu tbody tr:not(.grp):hover td{background:var(--accent-soft)}
+.gt{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.gt .track{width:60px;height:8px;display:inline-block}
+.gt .fill{display:block}
+.cgroup{display:flex;flex-direction:column;gap:8px}
+.cgroup h4{margin:6px 0 0;font-size:14px}
+.cmt{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.cmt .txt{min-width:0;overflow-wrap:anywhere}
+.cmt .who{font-size:12px;color:var(--muted);margin-top:2px}
+.cmt.flag{border-color:var(--pen);background:var(--pen-soft)}
+.cmt.hidden .txt{text-decoration:line-through;color:var(--muted)}
+.cmt .score-badge{min-width:36px;height:30px;font-size:14px}
+@media (max-width:560px){.cmt{grid-template-columns:40px 1fr}.cmt .btn{grid-column:2}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.two > *{min-width:0}
+
+/* student eval */
+.crit-card{display:flex;flex-direction:column;gap:12px}
+.crit-card .ch{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.crit-card .ch strong{font-size:17px}
+.lvls{display:flex;flex-direction:column;gap:6px}
+.lvl{display:grid;grid-template-columns:auto 44px 1fr;gap:12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;background:var(--surface)}
+.lvl input{margin:0;accent-color:var(--accent)}
+.lvl:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.lvl .score-badge{height:30px;min-width:40px}
+.lvl .d{font-size:14px}
+.spkblock{display:flex;flex-direction:column;gap:14px;padding-top:6px}
+.spkname{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-size:21px}
+.spkname .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-size:16px}
+.submitbar{position:sticky;bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.06)}
+.prog{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.prog .track{height:8px}
+.err-list{color:var(--pen);font-size:14px}
+.reason-miss textarea{border-color:var(--pen)}
+
+/* report */
+.report{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:22px}
+.report header{border-bottom:0;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--rainbow) border-box;border-bottom:3px solid transparent;padding-bottom:14px;display:flex;flex-direction:column;gap:6px}
+.report h1{font-size:28px}
+.report section{display:flex;flex-direction:column;gap:14px}
+.total{display:flex;align-items:baseline;gap:8px}
+.total .big{font-family:var(--f-mono);font-size:34px;font-variant-numeric:tabular-nums}
+.summary{white-space:pre-wrap;background:var(--surface-2);border-radius:8px;padding:12px 14px}
+.quotes{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.quotes li{border-left:3px solid var(--line);padding:2px 0 2px 12px;font-size:14px;overflow-wrap:anywhere}
+.spcard{border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+details.more summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:500}
+
+.sharebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sky-soft);border-radius:var(--r);padding:12px 14px}
+.sharebar input{flex:1 1 260px;font-family:var(--f-mono);font-size:13px}
+.sharebar .hint{flex-basis:100%}
+.part td.pc{text-align:center;font-size:13px;font-weight:600}
+.part th.pcol{text-align:center;white-space:normal;min-width:110px}
+.pc-done{color:var(--ok)}
+.pcbtn{background:none;border:1px dashed transparent;border-radius:5px;padding:1px 6px;color:inherit;font:inherit;cursor:pointer}
+.pcbtn:hover{border-color:var(--pen);color:var(--pen)}
+.pc-miss{color:var(--pen);background:var(--pen-soft)}
+.pc-pres{color:var(--muted)}
+.miss-never{background:var(--pen-soft)!important;color:var(--pen)}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:520px){.roles{grid-template-columns:1fr}}
+.rolecard{display:flex;flex-direction:column;align-items:center;gap:8px;padding:32px 18px;border-radius:18px;border:2px solid var(--line);background:var(--surface);cursor:pointer;text-align:center;color:var(--fg);transition:transform .12s,border-color .12s}
+.rolecard:hover{transform:translateY(-2px)}
+.rolecard .ico{font-size:44px;line-height:1}
+.rolecard strong{font-family:var(--f-display);font-weight:400;font-size:30px}
+.rolecard.r-stu{border-color:var(--sky);background:linear-gradient(var(--sky-soft),var(--surface))}
+.rolecard.r-tch{border-color:var(--accent);background:linear-gradient(var(--accent-soft),var(--surface))}
+.rolecard:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.confirm{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--pen);font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:500;z-index:20;max-width:calc(100% - 32px);text-align:center}
+#toast.bad{background:var(--pen);color:var(--surface)}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div id="app"><div class="loading">불러오는 중…</div></div>
+<div id="toast" hidden></div>
+
+<script>
+"use strict";
+const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+function newDeviceId(){ const a=new Uint8Array(20); (window.crypto||window.msCrypto).getRandomValues(a); const cs='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'; return Array.from(a,b=>cs[b&63]).join(''); }
+function deviceId(){ let d=LS.get('pr_d'); if(!d||!/^[A-Za-z0-9_-]{16,64}$/.test(d)){ d=newDeviceId(); LS.set('pr_d',d); } return d; }
+const AUTH={t:LS.get('pr_t')||null, d:null};
+async function apiCall(op,payload){
+  let res;
+  try{ res=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({op,auth:{t:AUTH.t,d:AUTH.d}},payload||{}))}); }
+  catch(e){ throw {code:'network',message:String(e)}; }
+  let body=null; try{ body=await res.json(); }catch(e){}
+  if(!res.ok) throw {code:(body&&body.error)||'network',message:'HTTP '+res.status};
+  return body;
+}
+/* small document store over the Apps Script server: same shape the app expects (doc/collection, get/set/update/delete, onSnapshot) */
+function makeDB(){
+  const subs=new Set(); let ver=null, needFull=true, inflight=false, again=false, stopped=false;
+  const snapOf=(path,v)=>({id:path.split('/').pop(),exists:v!=null,data:()=>v==null?undefined:v,metadata:{fromCache:false,hasPendingWrites:false}});
+  async function poll(){
+    if(stopped||!subs.size) return;
+    if(inflight){ again=true; return; }
+    inflight=true;
+    try{
+      const qs=[], seen=new Set();
+      subs.forEach(x=>{ const k=x.type+':'+x.path; if(!seen.has(k)){ seen.add(k); qs.push({type:x.type,path:x.path}); } });
+      const out=await apiCall('sync',{queries:qs,ver:needFull?null:ver});
+      if(S.offline){ S.offline=false; toast('다시 연결됐어요.'); }
+      if(out&&!out.same){ ver=out.ver; needFull=false;
+        subs.forEach(x=>{ const v=out.data[x.type+':'+x.path]; const str=JSON.stringify(v===undefined?null:v); if(str!==x.last){ x.last=str; try{ x.cb(v); }catch(e){ console.error(e); } } }); }
+    }catch(e){ console.warn(e); if(!S.offline){ S.offline=true; toast('서버와 연결이 잠시 끊겼어요. 자동으로 다시 시도해요.',true); } }
+    finally{ inflight=false; if(again){ again=false; setTimeout(poll,80); } }
+  }
+  let kt; function kick(full){ if(full) needFull=true; clearTimeout(kt); kt=setTimeout(poll,60); }
+  const iv=setInterval(()=>{ if(document.visibilityState!=='hidden') poll(); }, (S.teacher?4000:9000)+Math.floor(Math.random()*1500));
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') kick(); });
+  function listen(type,path,cb){ const x={type,path,cb,last:undefined}; subs.add(x); kick(true); return ()=>subs.delete(x); }
+  const docRef=path=>({ id:path.split('/').pop(), path,
+    get:async()=>{ const out=await apiCall('sync',{queries:[{type:'doc',path}]}); return snapOf(path,out.data['doc:'+path]); },
+    set:async data=>{ await apiCall('set',{path,data}); kick(true); },
+    update:async data=>{ await apiCall('update',{path,data}); kick(true); },
+    delete:async()=>{ await apiCall('delete',{path}); kick(true); },
+    onSnapshot:next=>listen('doc',path,v=>next(snapOf(path,v))),
+    collection:name=>colRef(path+'/'+name) });
+  const colRef=path=>({ path, doc:id=>docRef(path+'/'+id),
+    onSnapshot:next=>listen('col',path,v=>{ const docs=Object.keys(v||{}).sort().map(id=>snapOf(path+'/'+id,v[id])); next({docs,size:docs.length,empty:!docs.length}); }) });
+  return { doc:docRef, collection:colRef, kick, stop(){ stopped=true; clearInterval(iv); subs.clear(); } };
+}
+const S = {
+  db:null, user:null, uid:null, teacher:false, canWrite:null, ready:false, err:null,
+  classes:{}, sessions:{}, pubReports:{}, drafts:{}, mods:{}, evals:{}, myDoc:null,
+  view:{name:'home'}, preview:false, previewDoc:{byClass:{}},
+  rubricDraft:null, sessionForm:null, evalDraft:null, profileDraft:null, reportDraft:null,
+  confirm:null, renaming:false, aiBusy:false, aiCtl:null, evalTried:false
+};
+
+/* ---------- defaults ---------- */
+const DEF_BANNED = ['시발','씨발','ㅅㅂ','ㅆㅂ','병신','ㅂㅅ','존나','ㅈㄴ','개새','꺼져','닥쳐','찐따','등신','미친놈','미친년','쓰레기','멍청','바보','애자','fuck','shit','stupid','idiot','dumb','loser','shut up','ugly','trash'];
+const DEF_RUBRIC = {
+  content:[
+    {id:'c_struct',name:'구성',max:4,min:1,levels:{4:'피치덱의 필수 요소(타겟, 제품 기능, 기대 효과, 홍보전략 등)가 모두 포함됨.',3:'필수 요소 중 1개가 누락되거나 내용의 구체성이 일부 떨어짐.',2:'필수 요소 중 2개가 누락되었고, 내용이 다소 구체적이지 않음.',1:'필수 요소 중 3개 이상이 누락되었고, 내용이 구체적이지 않음.'}},
+    {id:'c_persuade',name:'내용의 설득력',max:4,min:1,levels:{4:'근거와 예시가 구체적이어서 청중이 제품을 써 보고 싶게 만듦.',3:'근거가 있으나 예시가 부족하거나 설득력이 일부 약함.',2:'주장은 있으나 근거가 막연함.',1:'근거 없이 주장만 나열함.'}},
+    {id:'c_slides',name:'시각 자료(PPT)',max:3,min:1,levels:{3:'핵심어와 이미지 중심이고 글자 크기·배치가 읽기 쉬움.',2:'일부 슬라이드에 글이 많거나 읽기 어려움.',1:'슬라이드가 내용 이해에 거의 도움이 되지 않음.'}},
+    {id:'c_english',name:'영어 표현의 정확성',max:3,min:1,levels:{3:'어휘와 문법이 대체로 정확해 의미 전달에 문제가 없음.',2:'오류가 몇 군데 있으나 의미는 통함.',1:'오류가 많아 의미를 이해하기 어려움.'}}
+  ],
+  speaking:[
+    {id:'s_fluency',name:'발음·유창성',max:4,min:1,levels:{4:'발음이 정확하고 막힘 없이 자연스럽게 말함.',3:'대체로 정확하나 가끔 머뭇거림.',2:'자주 머뭇거리거나 발음이 부정확한 부분이 있음.',1:'대본을 읽는 데 그치고 알아듣기 어려움.'}},
+    {id:'s_delivery',name:'전달력(목소리·속도)',max:3,min:1,levels:{3:'목소리가 크고 속도가 적절해 끝까지 잘 들림.',2:'목소리가 작거나 속도가 빨라 일부 듣기 어려움.',1:'대부분 잘 들리지 않음.'}},
+    {id:'s_audience',name:'청중과의 소통(시선·제스처)',max:3,min:1,levels:{3:'청중과 눈을 맞추고 제스처를 자연스럽게 사용함.',2:'화면이나 대본을 보는 시간이 많음.',1:'청중을 거의 보지 않음.'}}
+  ]
+};
+const STATUS = {ready:['발표 전','st-ready'], open:['평가 중','st-open'], closed:['마감','st-closed']};
+const REASON_MIN = 5;
+let SHARE_URL = '';
+const linkFor = cid=>SHARE_URL+'?class='+encodeURIComponent(cid);
+const teacherLink = ()=>SHARE_URL+'?mode=teacher';
+
+/* ---------- helpers ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = o=>JSON.parse(JSON.stringify(o??null));
+const gid = p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const nowISO = ()=>new Date().toISOString();
+const avg = a=>a.length? a.reduce((x,y)=>x+y,0)/a.length : null;
+const f1 = n=>n==null||isNaN(n)?'–':(Math.round(n*10)/10).toFixed(1);
+const byOrder = (a,b)=>(a.order??0)-(b.order??0);
+const classList = ()=>Object.values(S.classes).sort(byOrder);
+const sessionsOf = cid=>Object.values(S.sessions).filter(s=>s.classId===cid).sort(byOrder);
+const lsGet = k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet = (k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+const fmtTime = iso=>{ if(!iso) return ''; const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+function scoresOf(c){
+  if(Array.isArray(c.steps)&&c.steps.length) return c.steps.slice();
+  const o=[], st=Math.max(1,parseInt(c.step,10)||1); for(let s=c.max;s>=c.min;s-=st)o.push(s); return o;
+}
+function normCrit(c){
+  const old=c.levels||{};
+  if(c.step==='custom'){
+    let st=[...new Set((c.steps||[]).map(n=>parseInt(n,10)).filter(n=>!isNaN(n)&&n>=0&&n<=100))].sort((a,b)=>b-a);
+    if(!st.length) st=[1];
+    c.steps=st; c.max=st[0]; c.min=st[st.length-1];
+  } else {
+    c.step=[1,2,3].includes(parseInt(c.step,10))?parseInt(c.step,10):1;
+    c.max=Math.max(1,Math.min(100,parseInt(c.max,10)||1));
+    c.min=Math.max(0,Math.min(c.max,parseInt(c.min,10)||0));
+    delete c.steps; c.steps=scoresOf({max:c.max,min:c.min,step:c.step});
+  }
+  const lv={}; for(const s of c.steps) lv[s]=old[s]||''; c.levels=lv; return c;
+}
+const norm = s=>String(s||'').toLowerCase().replace(/[\s.\-_*~!@#$%^&()+=,?/\\|'"`:;0-9]/g,'');
+function isFlagged(text, cls){
+  if(!text) return false; const t=norm(text);
+  return (cls.banned||[]).some(w=>{const n=norm(w); return n && t.includes(n)});
+}
+function errMsg(e){
+  const c=e&&e.code;
+  if(c==='permission_denied') return '저장할 권한이 없어요. 선생님 로그인이 풀렸다면 다시 로그인해 주세요.';
+  if(c==='too_large') return '내용이 너무 길어 저장하지 못했어요. 조금 줄여 주세요.';
+  if(c==='network') return '서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.';
+  if(c==='invalid_argument') return '저장하지 못했어요. 새로고침한 뒤 다시 시도해 주세요.';
+  if(c==='quota_exceeded') return '저장 공간이 가득 찼어요. 쓰지 않는 반이나 세션을 지워 주세요.';
+  if(c==='resource_exhausted') return '요청이 많아요. 잠시 뒤 다시 눌러 주세요.';
+  return '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+}
+let toastTimer;
+function toast(msg,bad){const t=$('#toast');t.textContent=msg;t.className=bad?'bad':'';t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.hidden=true,3200)}
+let wq = Promise.resolve();
+function queue(fn){ const p = wq.then(fn); wq = p.catch(()=>{}); return p; }
+async function run(fn, ok){ try{ await queue(fn); if(ok) toast(ok); return true; }catch(e){ console.error(e); toast(errMsg(e),true); return false; } }
+
+/* ---------- data shaping ---------- */
+function myDoc(){ return S.preview ? S.previewDoc : (S.myDoc||{byClass:{}}); }
+function myProfile(cid){ return myDoc().byClass?.[cid] || null; }
+/* one entry per student: docs from different devices with the same 번호 are merged, newest wins per presentation */
+function studentsOf(cid){
+  const groups={};
+  for(const [uid,d] of Object.entries(S.evals)){
+    const b=d.byClass&&d.byClass[cid]; if(!b) continue;
+    const nk=nkey(b.number); const k=nk?'n'+nk:'u'+uid;
+    const g=groups[k]||(groups[k]={uid,uids:[],number:b.number,name:b.name,myGroup:b.myGroup,items:{},itemUid:{},_t:''});
+    g.uids.push(uid);
+    const t=d.updatedAt||''; if(t>=g._t){ g._t=t; g.uid=uid; g.name=b.name; g.number=b.number; g.myGroup=b.myGroup; }
+    for(const [sid,it] of Object.entries(b.items||{})){ const cur=g.items[sid]; if(!cur||(it.at||'')>(cur.at||'')){ g.items[sid]=it; g.itemUid[sid]=uid; } }
+  }
+  return Object.values(groups);
+}
+const nkey = n=>{ const v=parseInt(String(n||'').trim(),10); return isNaN(v)?'':String(v); };
+/* who should evaluate a session and who hasn't: roster-based when the class has a roster, otherwise registered students */
+function participation(cls, sess){
+  const studs=studentsOf(cls.id);
+  const presenterNos=new Set((sess.speakers||[]).map(p=>nkey(p.number)).filter(Boolean));
+  const presenterNames=new Set((sess.speakers||[]).map(p=>(p.name||'').trim()).filter(Boolean));
+  const roster=cls.roster||[];
+  const rows=[];
+  if(roster.length){
+    for(const r of roster){
+      const k=nkey(r.number);
+      const st=studs.find(x=>k&&nkey(x.number)===k) || studs.find(x=>(x.name||'').trim()===r.name);
+      rows.push({number:r.number,name:r.name,stu:st||null});
+    }
+  } else for(const st of studs) rows.push({number:st.number,name:st.name,stu:st});
+  for(const r of rows){
+    const k=nkey(r.number);
+    const isPresenter=(k&&presenterNos.has(k)) || (!k&&presenterNames.has(r.name)) || (r.stu&&r.stu.myGroup===sess.id);
+    r.state = isPresenter?'presenter' : (r.stu&&r.stu.items&&r.stu.items[sess.id])?'done' : r.stu?'missing':'never';
+  }
+  rows.sort((a,b)=>((+nkey(a.number))||999)-((+nkey(b.number))||999) || String(a.name).localeCompare(String(b.name),'ko'));
+  return {rows, eligible:rows.filter(r=>r.state!=='presenter'), missing:rows.filter(r=>r.state==='missing'||r.state==='never'), rosterBased:roster.length>0};
+}
+function submitCount(sid, cid){ return studentsOf(cid).filter(s=>s.items&&s.items[sid]).length; }
+
+function sessionStats(sid){
+  const sess=S.sessions[sid]; if(!sess) return null;
+  const cls=S.classes[sess.classId]; if(!cls) return null;
+  const R=cls.rubric; const hidden=(S.mods[cls.id]&&S.mods[cls.id].hidden)||{};
+  const entries=studentsOf(cls.id).filter(s=>s.items&&s.items[sid]).map(e=>({...e,uid:(e.itemUid&&e.itemUid[sid])||e.uid}));
+  const who=s=>`${s.number?s.number+'번 ':''}${s.name||'이름 없음'}`;
+  const mk=(c, getV)=>{
+    const scores=[], dist={};
+    for(const e of entries){
+      const v=getV(e.items[sid]); if(!v) continue;
+      if(typeof v.score==='number'){scores.push(v.score); dist[v.score]=(dist[v.score]||0)+1;}
+    }
+    return {c, avg:avg(scores), n:scores.length, dist};
+  };
+  const sumGiven=(obj,crits)=>{ if(!obj) return null; let t=0,any=false; for(const c of crits){ const v=obj[c.id]; if(v&&typeof v.score==='number'){t+=v.score;any=true;} } return any?t:null; };
+  const cm=(e,key,text,given)=>({key, uid:e.uid, who:who(e), score:given, text:text.trim(), flagged:isFlagged(text,cls), hidden:!!hidden[key]});
+  const content=R.content.map(c=>mk(c, it=>it.content&&it.content[c.id]));
+  const contentComments=[];
+  for(const e of entries){ const it=e.items[sid]; if(it.contentReason&&it.contentReason.trim()) contentComments.push(cm(e,`${e.uid}|${sid}|c`,it.contentReason,sumGiven(it.content,R.content))); }
+  const speaking=(sess.speakers||[]).filter(sp=>!sp.absent).map(sp=>{
+    const crits=R.speaking.map(c=>mk(c, it=>it.speaking&&it.speaking[sp.id]&&it.speaking[sp.id][c.id]));
+    const comments=[];
+    for(const e of entries){ const it=e.items[sid]; const t=it.speakerReasons&&it.speakerReasons[sp.id]; if(t&&t.trim()) comments.push(cm(e,`${e.uid}|${sid}|s|${sp.id}`,t,sumGiven(it.speaking&&it.speaking[sp.id],R.speaking))); }
+    const done=crits.every(x=>x.avg!=null);
+    return {sp, crits, comments, total: done? crits.reduce((a,x)=>a+x.avg,0):null, totalMax:R.speaking.reduce((a,c)=>a+c.max,0)};
+  });
+  const cDone=content.every(x=>x.avg!=null);
+  return {sess, cls, R, n:entries.length, entries, content, contentComments, speaking, absent:(sess.speakers||[]).filter(sp=>sp.absent),
+    contentTotal: cDone&&content.length? content.reduce((a,x)=>a+x.avg,0):null,
+    contentMax: R.content.reduce((a,c)=>a+c.max,0)};
+}
+
+function buildReport(sid, draft){
+  const st=sessionStats(sid); if(!st) return null;
+  const fOn=st.cls.filterOn!==false;
+  const keep=c=>!c.hidden && !(fOn&&c.flagged);
+  const inc=!!draft.includeComments;
+  return {
+    sid, classId:st.cls.id, title:st.sess.title, topic:st.sess.topic||'', n:st.n,
+    groupSummary:draft.groupSummary||'', includeComments:inc,
+    content: st.content.map(x=>({name:x.c.name, max:x.c.max, avg:x.avg})),
+    contentComments: inc? st.contentComments.filter(keep).map(c=>c.text):[],
+    contentTotal: st.contentTotal, contentMax: st.contentMax,
+    speakers: st.speaking.map(s=>({id:s.sp.id, name:s.sp.name, summary:(draft.speakerSummaries||{})[s.sp.id]||'', total:s.total, totalMax:s.totalMax,
+      comments: inc? s.comments.filter(keep).map(c=>c.text):[],
+      crits:s.crits.map(x=>({name:x.c.name, max:x.c.max, avg:x.avg}))}))
+  };
+}
+
+/* ---------- render ---------- */
+function isEditing(){
+  const v=S.view;
+  if(v.name==='eval') return true;
+  if(v.name==='class' && v.tab==='rubric') return true;
+  if(v.name==='class' && v.tab==='report') return true;
+  if(v.name==='class' && v.tab==='sessions' && S.sessionForm) return true;
+  if(v.name==='class' && v.tab==='part' && S.rosterDraft) return true;
+  if(S.profileDraft && S.profileDraft.dirty) return true;
+  return false;
+}
+let raf=0;
+function onData(){ if(raf) return; raf=requestAnimationFrame(()=>{raf=0; if(isEditing()) updateLive(); else render();}); }
+function updateLive(){
+  if(S.view.name==='class' && S.view.tab==='report' && S.reportDraft){
+    const el=$('#reportPreview'); if(el) el.innerHTML=reportPreviewHTML();
+    const m=$('#reportMeta'); if(m) m.innerHTML=reportMetaHTML();
+  }
+}
+
+function render(){
+  const app=$('#app');
+  let h=topBar();
+  if(S.err) h+=`<main class="wrap narrow"><div class="card stack"><h2>이 화면에서는 앱을 열 수 없어요</h2><p class="muted">${esc(S.err)}</p></div></main>`;
+  else if(S.roleView) h+=roleHTML();
+  else if(S.loginView) h+=loginHTML();
+  else if(!S.ready) h+=`<div class="loading">불러오는 중…</div>`;
+  else if(S.teacher && !S.preview) h+=teacherView();
+  else h+=studentView();
+  app.innerHTML=h;
+}
+
+function topBar(){
+  const role = S.teacher ? (S.preview?'학생 화면 미리보기':'교사') : '학생';
+  return `<header class="bar"><div class="bar-in">
+    <button class="brand" data-act="home">발표 상호평가</button>
+    ${(S.roleView||S.loginView)?'':`<span class="role ${S.teacher&&!S.preview?'t':''}">${role}</span>`}
+    <span class="grow"></span>
+    ${S.teacher?`<button class="btn ghost sm" data-act="togglePreview">${S.preview?'교사 화면으로 돌아가기':'학생 화면 미리보기'}</button><button class="btn ghost sm" data-act="teacherLogout">로그아웃</button>`:((S.roleView||S.loginView||!S.ready)?'':`<button class="btn ghost sm" data-act="toRoleScreen">처음 화면</button>`)}
+  </div></header>`;
+}
+
+function confirmBtn(key, label, act, id, msg='정말 삭제할까요?', yes='삭제'){
+  if(S.confirm===key) return `<span class="confirm">${msg} <button class="btn sm danger solid" data-act="${act}" data-id="${esc(id)}">${yes}</button><button class="btn sm ghost" data-act="cancelConfirm">취소</button></span>`;
+  return `<button class="btn sm danger" data-act="askConfirm" data-key="${esc(key)}">${label}</button>`;
+}
+
+/* ===== teacher ===== */
+function teacherView(){
+  const v=S.view;
+  if(v.name==='class' && S.classes[v.cid]) return tClass();
+  S.view={name:'home'};
+  return tHome();
+}
+function tHome(){
+  const cl=classList();
+  return `<main class="wrap">
+    <section class="stack">
+      <h1>반 목록</h1>
+      ${S.storeKind==='file'?`<div class="note">지금은 서버 파일에 저장하고 있어요. Render 무료 서버에서는 재시작하면 데이터가 지워지니, 설치 안내대로 Blueprint로 배포해 데이터베이스(DATABASE_URL)를 연결해 주세요.</div>`:''}
+      <div class="sharebar"><span class="eyebrow">교사용 주소</span><input type="text" id="teacherLink" readonly value="${esc(teacherLink())}" aria-label="교사용 주소"><button class="btn sm" data-act="copyTeacher">복사</button><span class="muted small hint">처음 화면에서 '교사'를 눌러도 되고, 이 주소로 열면 바로 로그인 화면이 나와요. 학생에게는 반 화면의 '학생용 링크'를 보내 주세요.</span></div>
+      <p class="muted">반마다 평가 기준과 발표 세션을 따로 관리해요. 학생들은 이 페이지를 열고 자기 반을 골라 평가를 제출합니다.</p>
+    </section>
+    <section class="card stack">
+      <h2 class="h3">새 반 만들기</h2>
+      <div class="row wrapr">
+        <input type="text" id="newClassName" placeholder="예: 2학년 3반" style="flex:1 1 200px" maxlength="40">
+        <select id="newClassCopy" style="flex:1 1 200px">
+          <option value="">기본 평가 기준으로 시작</option>
+          ${cl.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}의 평가 기준 복사</option>`).join('')}
+        </select>
+        <button class="btn primary" data-act="createClass">반 만들기</button>
+      </div>
+    </section>
+    ${cl.length?`<div class="grid">${cl.map(c=>{
+      const ss=sessionsOf(c.id); const open=ss.filter(s=>s.status==='open').length;
+      return `<article class="card ccard">
+        <h3>${esc(c.name)}</h3>
+        <div class="meta"><span>발표 ${ss.length}개</span><span>참여 학생 ${studentsOf(c.id).length}명</span>${open?`<span class="pill st-open">평가 중 ${open}</span>`:''}</div>
+        <div class="acts"><button class="btn primary sm" data-act="openClass" data-id="${esc(c.id)}">열기</button><button class="btn sm" data-act="copyLink" data-id="${esc(c.id)}">학생용 링크 복사</button>${confirmBtn('delclass:'+c.id,'반 삭제','delClass',c.id)}</div>
+      </article>`}).join('')}</div>`:`<div class="empty">아직 만든 반이 없어요. 위에서 첫 반을 만들어 보세요.</div>`}
+  </main>`;
+}
+function tClass(){
+  const v=S.view, cls=S.classes[v.cid];
+  const tabs=[['sessions','발표 세션'],['rubric','평가 기준'],['dash','실시간 대시보드'],['students','학생별 점수'],['part','참여 현황'],['report','피드백 리포트']];
+  let body='';
+  if(v.tab==='rubric') body=tRubric(cls);
+  else if(v.tab==='dash') body=tDash(cls);
+  else if(v.tab==='students') body=tStudents(cls);
+  else if(v.tab==='part') body=tPart(cls);
+  else if(v.tab==='report') body=tReport(cls);
+  else body=tSessions(cls);
+  return `<main class="wrap">
+    <div class="classhead">
+      <div class="stack" style="gap:4px">
+        <button class="btn ghost sm" data-act="home" style="align-self:flex-start">← 반 목록</button>
+        ${S.renaming?`<div class="row wrapr"><input type="text" id="renameInput" value="${esc(cls.name)}" maxlength="40"><button class="btn primary sm" data-act="renameSave">저장</button><button class="btn sm ghost" data-act="renameCancel">취소</button></div>`
+          :`<div class="row"><h1>${esc(cls.name)}</h1><button class="btn ghost sm" data-act="renameStart">이름 바꾸기</button></div>`}
+      </div>
+      <label class="switch small" title="악의적인 표현이 들어간 의견을 리포트에서 빼요"><input type="checkbox" id="quickFilter" data-act-change="quickFilter" ${cls.filterOn!==false?'checked':''}>피드백 필터 ${cls.filterOn!==false?'켜짐':'꺼짐'}</label>
+    </div>
+    <div class="sharebar">
+      <span class="eyebrow">학생용 링크</span>
+      <input type="text" id="shareLink" readonly value="${esc(linkFor(cls.id))}" aria-label="학생용 링크">
+      <button class="btn primary sm" data-act="copyLink" data-id="${esc(cls.id)}">링크 복사</button>
+      <span class="muted small hint">이 링크로 들어온 학생은 바로 '${esc(cls.name)}' 학생 화면이 열려요. 학생 화면에서는 교사 메뉴가 보이지 않아요.</span>
+    </div>
+    <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${v.tab===k}" data-act="tab" data-tab="${k}">${l}</button>`).join('')}</nav>
+    ${body}
+  </main>`;
+}
+
+/* sessions tab */
+function tSessions(cls){
+  const ss=sessionsOf(cls.id);
+  const f=S.sessionForm;
+  return `<section class="stack">
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>발표 세션</h2><p class="muted small">모둠 하나의 발표가 세션 하나예요. '평가 시작'을 누르면 학생 화면에 평가지가 열려요.</p></div>
+      ${f?'':`<button class="btn primary" data-act="newSession">+ 발표 추가</button>`}</div>
+    ${f?sessionFormHTML(f):''}
+    ${ss.length?`<div class="slist">${ss.map((s,i)=>{
+      const [lab,cl]=STATUS[s.status||'ready']; const n=submitCount(s.id,cls.id);
+      return `<article class="card srow">
+        <div class="ord"><button class="icon-btn" data-act="moveSession" data-id="${esc(s.id)}" data-dir="-1" ${i===0?'disabled':''} aria-label="위로">↑</button><button class="icon-btn" data-act="moveSession" data-id="${esc(s.id)}" data-dir="1" ${i===ss.length-1?'disabled':''} aria-label="아래로">↓</button></div>
+        <div class="body">
+          <div class="title"><strong>${esc(s.title)}</strong><span class="pill ${cl}">${lab}</span><span class="muted small mono">제출 ${n}</span></div>
+          ${s.topic?`<div class="muted small">${esc(s.topic)}</div>`:''}
+          <div class="spk">${(s.speakers||[]).map(p=>`<button class="spbtn ${p.absent?'absent':''}" data-act="toggleAbsent" data-id="${esc(s.id)}" data-sp="${esc(p.id)}" aria-pressed="${!!p.absent}" title="${p.absent?'눌러서 다시 평가 대상으로':'눌러서 불참 처리(평가 대상에서 빼기)'}">${p.number?`<span class="mono">${esc(p.number)}</span> `:''}${esc(p.name)}${p.absent?' · 불참':''}</button>`).join('')}</div>
+          <span class="muted small">발표자 이름을 누르면 불참 처리돼서 학생 평가지에서 빠져요.</span>
+        </div>
+        <div class="acts">
+          ${s.status==='open'?`<button class="btn sm" data-act="setStatus" data-id="${esc(s.id)}" data-st="closed">평가 마감</button>`
+            :s.status==='closed'?`<button class="btn sm" data-act="setStatus" data-id="${esc(s.id)}" data-st="open">다시 열기</button>`
+            :`<button class="btn sm primary" data-act="setStatus" data-id="${esc(s.id)}" data-st="open">평가 시작</button>`}
+          <button class="btn sm" data-act="goDash" data-id="${esc(s.id)}">결과 보기</button>
+          <button class="btn sm ghost" data-act="editSession" data-id="${esc(s.id)}">수정</button>
+          ${(n||s.status!=='ready')?confirmBtn('resetsess:'+s.id,'초기화','resetSession',s.id,`제출 ${n}건을 모두 지우고 '발표 전'으로 되돌릴까요?`,'초기화'):''}
+          ${confirmBtn('delsess:'+s.id,'삭제','delSession',s.id)}
+        </div>
+      </article>`}).join('')}</div>`:(f?'':`<div class="empty">발표 세션이 없어요. '+ 발표 추가'로 모둠과 발표자를 등록하세요.</div>`)}
+  </section>`;
+}
+function sessionFormHTML(f){
+  return `<div class="card sform">
+    <h3 class="h3">${f.id?'발표 수정':'새 발표'}</h3>
+    <div class="grid2">
+      <label class="fld">모둠 이름<input type="text" id="sfTitle" data-sf="title" value="${esc(f.title)}" placeholder="예: 3모둠 – SmartBottle" maxlength="60"></label>
+      <label class="fld">발표 주제 (선택)<input type="text" id="sfTopic" data-sf="topic" value="${esc(f.topic)}" placeholder="예: 친환경 물병 피치덱" maxlength="80"></label>
+    </div>
+    <label class="fld" style="max-width:180px">발표자 수<select id="sfCount" data-sf-count>${[1,2,3,4,5,6].map(n=>`<option ${f.speakers.length===n?'selected':''}>${n}</option>`).join('')}</select></label>
+    <div class="grid2">${f.speakers.map((p,i)=>`<div class="row" style="align-items:flex-end"><label class="fld" style="width:84px">번호<input type="number" id="sfNo${i}" min="1" max="99" data-sf-no="${i}" value="${esc(p.number||'')}"></label><label class="fld" style="flex:1">발표자 ${i+1} 이름<input type="text" id="sfSp${i}" data-sf-sp="${i}" value="${esc(p.name)}" placeholder="예: 김민지" maxlength="30"></label></div>`).join('')}</div>
+    <p class="muted small" style="margin-top:-6px">번호를 적어 두면 '학생별 점수'에서 번호순으로 정렬할 수 있어요.</p>
+    <div class="row wrapr"><button class="btn primary" data-act="saveSession">저장</button><button class="btn ghost" data-act="cancelSession">취소</button>
+      ${f.id&&submitCount(f.id,S.view.cid)?`<span class="muted small">이미 제출된 평가가 있어요. 발표자를 빼면 그 발표자의 점수는 결과에서 사라져요.</span>`:''}</div>
+  </div>`;
+}
+
+/* rubric tab */
+function tRubric(cls){
+  if(!S.rubricDraft||S.rubricDraft.cid!==cls.id) loadRubricDraft(cls);
+  const d=S.rubricDraft;
+  const started=sessionsOf(cls.id).some(s=>submitCount(s.id,cls.id)>0);
+  const others=classList().filter(c=>c.id!==cls.id);
+  const sec=(key,title,sub)=>`<section class="card rsec">
+    <div class="rsec-h"><h2>${title}</h2><span class="muted small">${sub}</span><span class="grow"></span><span class="mono muted small">합계 ${d.rubric[key].reduce((a,c)=>a+c.max,0)}점</span></div>
+    ${d.rubric[key].map((c,i)=>{ const custom=c.step==='custom'; const sc=scoresOf(c); return `<div class="crit-ed">
+      <div class="crit-top">
+        <label class="fld name">평가요소<input type="text" id="rb-${key}-${i}-name" data-rb="${key}|${i}|name" value="${esc(c.name)}" maxlength="40"></label>
+        <label class="fld">배점<input type="number" id="rb-${key}-${i}-max" min="1" max="100" data-rb="${key}|${i}|max" value="${c.max}" ${custom?'disabled title="직접 입력에서는 가장 높은 점수가 배점이 돼요"':''}></label>
+        <label class="fld">점수 간격<select id="rb-${key}-${i}-step" data-rb="${key}|${i}|step">${[['1','1점씩'],['2','2점씩'],['3','3점씩'],['custom','직접 입력']].map(([v,l])=>`<option value="${v}" ${String(c.step||1)===v?'selected':''}>${l}</option>`).join('')}</select></label>
+        ${custom?'':`<label class="fld">최저점<input type="number" id="rb-${key}-${i}-min" min="0" max="${c.max}" data-rb="${key}|${i}|min" value="${c.min}" style="width:72px"></label>`}
+        <div class="row" style="gap:6px">
+          <button class="icon-btn" data-act="moveCrit" data-k="${key}" data-i="${i}" data-dir="-1" ${i===0?'disabled':''} aria-label="위로">↑</button>
+          <button class="icon-btn" data-act="moveCrit" data-k="${key}" data-i="${i}" data-dir="1" ${i===d.rubric[key].length-1?'disabled':''} aria-label="아래로">↓</button>
+          <button class="btn sm danger" data-act="delCrit" data-k="${key}" data-i="${i}">빼기</button>
+        </div>
+      </div>
+      <p class="muted small">점수 단계: <span class="mono">${sc.join(' · ')}</span>${custom?' — 왼쪽 숫자를 고쳐 원하는 점수로 바꿀 수 있어요.':''}</p>
+      <table class="rtable"><tbody>${sc.map((s,si)=>`<tr><td class="sc">${custom?`<input type="number" class="score-in" id="rbs-${key}-${i}-${si}" min="0" max="100" data-rbs="${key}|${i}|${s}" value="${s}" aria-label="점수">`:`<span class="score-badge">${s}</span>`}</td><td><textarea id="rbl-${key}-${i}-${s}" data-rbl="${key}|${i}|${s}" rows="2" placeholder="${s}점을 주는 기준을 적어 주세요">${esc(c.levels[s])}</textarea></td>${custom?`<td class="del"><button class="icon-btn" data-act="delStep" data-k="${key}" data-i="${i}" data-s="${s}" ${sc.length<=2?'disabled':''} aria-label="${s}점 단계 빼기">✕</button></td>`:''}</tr>`).join('')}</tbody></table>
+      ${custom?`<button class="btn sm" data-act="addStep" data-k="${key}" data-i="${i}" style="align-self:flex-start">+ 점수 단계 추가</button>`:''}
+    </div>`}).join('<hr style="border:0;border-top:2px solid var(--surface-2);margin:4px 0">')}
+    <button class="btn" data-act="addCrit" data-k="${key}" style="align-self:flex-start">+ 평가요소 추가</button>
+  </section>`;
+  return `<div class="stack">
+    ${started?`<div class="note">이미 제출된 평가가 있어요. 평가요소를 빼거나 배점을 바꾸면 기존 점수가 결과와 맞지 않을 수 있어요.</div>`:''}
+    ${others.length?`<div class="row wrapr"><span class="muted small">다른 반 기준 가져오기</span><select id="copyFrom">${others.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select><button class="btn sm" data-act="copyRubric">불러오기</button><span class="muted small">저장 전까지 반영되지 않아요.</span></div>`:''}
+    ${sec('content','내용·구성','모둠 평가 · 발표 내용과 PPT')}
+    ${sec('speaking','발표','발표자별 평가 · 각 발표자에게 따로 점수를 줘요')}
+    <section class="card stack">
+      <h2>피드백 필터</h2>
+      <label class="switch"><input type="checkbox" id="ffOn" data-ff="filterOn" ${d.filterOn?'checked':''}>필터 사용</label>
+      <p class="muted small">켜 두면 아래 단어가 들어간 의견은 대시보드에서 빨갛게 표시되고, 학생에게 공개하는 리포트에서 빠져요. 띄어쓰기·기호를 넣어 피한 경우도 잡아요. 끄면 모든 의견이 리포트에 들어갈 수 있어요(대시보드에서 하나씩 숨길 수는 있어요).</p>
+      <label class="fld">걸러낼 단어 (쉼표나 줄바꿈으로 구분)<textarea id="ffWords" data-ff="banned" rows="4">${esc(d.bannedText)}</textarea></label>
+    </section>
+    <div class="savebar"><span class="muted small grow">${d.dirty?'저장하지 않은 변경 사항이 있어요.':'모든 변경 사항이 저장되어 있어요.'}</span>
+      <button class="btn ghost" data-act="resetRubric" ${d.dirty?'':'disabled'}>되돌리기</button>
+      <button class="btn primary" data-act="saveRubric">평가 기준 저장</button></div>
+  </div>`;
+}
+function loadRubricDraft(cls){
+  S.rubricDraft={cid:cls.id, rubric:clone(cls.rubric), filterOn:cls.filterOn!==false, bannedText:(cls.banned||[]).join(', '), dirty:false};
+}
+
+/* dashboard tab */
+function tDash(cls){
+  const ss=sessionsOf(cls.id);
+  if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
+  let sid=S.view.sid; if(!sid||!S.sessions[sid]||S.sessions[sid].classId!==cls.id){ sid=(ss.find(s=>s.status==='open')||ss[0]).id; S.view.sid=sid; }
+  const st=sessionStats(sid); const fOn=cls.filterOn!==false;
+  const part=participation(cls, st.sess);
+  const eligible=part.eligible, missing=part.missing;
+  const allC=[...st.contentComments, ...st.speaking.flatMap(s=>s.comments)];
+  const flagged=allC.filter(c=>c.flagged).length;
+  const [lab,pc]=STATUS[st.sess.status||'ready'];
+  const commentList=(list,max)=>list.length?list.map(c=>`<div class="cmt ${c.flagged&&fOn?'flag':''} ${c.hidden?'hidden':''}">
+      <span class="score-badge" title="이 학생이 준 점수 합계">${c.score??'–'}</span>
+      <div><div class="txt">${esc(c.text)}</div><div class="who">${esc(c.who)} · 준 점수 ${c.score??'–'}/${max} ${c.flagged&&fOn?'<span class="tag flag">필터에 걸림 · 리포트 제외</span>':''} ${c.hidden?'<span class="tag">숨김 · 리포트 제외</span>':''}</div></div>
+      <button class="btn sm ghost" data-act="toggleHide" data-key="${esc(c.key)}">${c.hidden?'다시 보이기':'숨기기'}</button>
+    </div>`).join(''):`<p class="muted small">아직 의견이 없어요.</p>`;
+  return `<div class="stack">
+    <div class="chips">${ss.map(s=>`<button class="chip" aria-pressed="${s.id===sid}" data-act="pickSession" data-id="${esc(s.id)}">${esc(s.title)}<span class="n">${submitCount(s.id,cls.id)}</span></button>`).join('')}</div>
+    <div class="sec-head"><div class="row wrapr"><h2>${esc(st.sess.title)}</h2><span class="pill ${pc}">${lab}</span></div>
+      <div class="row wrapr">${st.sess.status==='open'?`<button class="btn sm" data-act="setStatus" data-id="${esc(sid)}" data-st="closed">평가 마감</button>`:st.sess.status==='closed'?`<button class="btn sm" data-act="setStatus" data-id="${esc(sid)}" data-st="open">다시 열기</button>`:`<button class="btn sm primary" data-act="setStatus" data-id="${esc(sid)}" data-st="open">평가 시작</button>`}
+      ${confirmBtn('resetsess:'+sid,'초기화','resetSession',sid,`제출 ${st.n}건을 모두 지우고 '발표 전'으로 되돌릴까요?`,'초기화')}
+      <button class="btn sm primary" data-act="goReport" data-id="${esc(sid)}">리포트 만들기 →</button></div></div>
+    <div class="kpis">
+      <div class="kpi"><span class="k">제출</span><span class="v">${st.n}<small> / ${eligible.length}명</small></span></div>
+      <div class="kpi"><span class="k">내용·구성 평균</span><span class="v">${f1(st.contentTotal)}<small> / ${st.contentMax}</small></span></div>
+      <div class="kpi"><span class="k">필터에 걸린 의견</span><span class="v" style="color:${flagged&&fOn?'var(--pen)':'inherit'}">${flagged}<small> 건${fOn?'':' (필터 꺼짐)'}</small></span></div>
+    </div>
+    ${st.absent.length?`<div class="note">불참 처리된 발표자: ${st.absent.map(p=>esc(p.name)).join(', ')} · 학생 평가지와 결과에서 빠져 있어요.</div>`:''}
+    ${missing.length?`<div class="card stack" style="gap:8px"><strong class="small">아직 제출하지 않은 학생 ${missing.length}명 <span class="muted">${part.rosterBased?'(학생 명단 기준)':'(앱에 들어온 학생 기준 · 참여 현황 탭에서 명단을 넣으면 한 번도 안 들어온 학생도 잡혀요)'}</span></strong><div class="spk">${missing.map(s=>`<span class="${s.state==='never'?'miss-never':''}">${esc((s.number?s.number+'번 ':'')+(s.name||''))}${s.state==='never'?' · 미접속':''}</span>`).join('')}</div></div>`:''}
+    <div class="two">
+      <section class="card stack">
+        <h3 class="h3">내용·구성 <span class="muted small">모둠 평가</span></h3>
+        <div class="bars">${st.content.map(x=>`<div class="barrow"><span class="lab">${esc(x.c.name)}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.c.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.c.max}</span>
+          <div class="dist">${scoresOf(x.c).map(s=>`<span>${s}점 ×${x.dist[s]||0}</span>`).join('')}</div></div>`).join('')}</div>
+      </section>
+      <section class="card stack">
+        <h3 class="h3">발표 <span class="muted small">발표자별 평균</span></h3>
+        <div class="tblwrap"><table class="data"><thead><tr><th>발표자</th>${st.R.speaking.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num">합계</th></tr></thead>
+          <tbody>${st.speaking.map(s=>`<tr><td><strong>${esc(s.sp.name)}</strong></td>${s.crits.map(x=>`<td class="num">${f1(x.avg)}</td>`).join('')}<td class="num"><strong>${f1(s.total)}</strong> / ${s.totalMax}</td></tr>`).join('')}</tbody></table></div>
+      </section>
+    </div>
+    <section class="stack">
+      <h3 class="h3">학생 의견 <span class="muted small">선생님만 볼 수 있어요. 평가자 이름은 리포트에 나가지 않아요.</span></h3>
+      <div class="two">
+        <div class="cgroup"><strong>내용·구성</strong>${commentList(st.contentComments, st.contentMax)}</div>
+        <div class="cgroup"><strong>발표</strong>${st.speaking.map(s=>`<details class="more" open><summary>${esc(s.sp.name)}</summary><div class="cgroup">${commentList(s.comments, s.totalMax)}</div></details>`).join('')}</div>
+      </div>
+    </section>
+  </div>`;
+}
+
+/* participation tab */
+function tPart(cls){
+  const editing = S.rosterDraft && S.rosterDraft.cid===cls.id;
+  const roster=cls.roster||[];
+  const editor = editing?`<section class="card stack">
+      <h3 class="h3">학생 명단</h3>
+      <p class="muted small">한 줄에 한 명씩 '번호 이름'으로 적어 주세요. 엑셀이나 나이스 명단을 그대로 붙여 넣어도 돼요. 학생이 입력한 번호로 짝을 맞추니, 학생들에게 번호를 정확히 적게 해 주세요.</p>
+      <textarea id="rosterText" data-roster rows="12" placeholder="1 김민지&#10;2 박서준&#10;3 이하은">${esc(S.rosterDraft.text)}</textarea>
+      <div class="row wrapr"><button class="btn primary" data-act="saveRoster">명단 저장</button>${roster.length?'<button class="btn ghost" data-act="cancelRoster">취소</button>':''}<span class="muted small">${S.rosterDraft.text.split('\n').filter(l=>l.trim()).length}명</span></div>
+    </section>`
+    : `<div class="row wrapr"><span class="muted small">학생 명단 ${roster.length}명</span><button class="btn sm" data-act="editRoster">명단 편집</button></div>`;
+  if(!roster.length && !editing){ S.rosterDraft={cid:cls.id,text:''}; return tPart(cls); }
+  const ss=sessionsOf(cls.id).filter(s=>s.status==='open'||s.status==='closed');
+  if(!roster.length) return `<div class="stack"><div class="sec-head"><div class="stack" style="gap:2px"><h2>참여 현황</h2><p class="muted small">반 학생 명단을 넣으면, 발표마다 평가를 내지 않은 학생을 한눈에 볼 수 있어요.</p></div></div>${editor}</div>`;
+  const parts=ss.map(s=>({s,p:participation(cls,s)}));
+  const byKey=(p,r)=>p.rows.find(x=>x.number===r.number&&x.name===r.name);
+  const lab={done:['제출','pc-done'],missing:['미제출','pc-miss'],never:['미제출','pc-miss'],presenter:['발표','pc-pres']};
+  const rows=roster.map(r=>{ let miss=0; const cells=parts.map(({s,p})=>{ const x=byKey(p,r); if(x&&(x.state==='missing'||x.state==='never')) miss++; const [t,c]=lab[x?x.state:'never'];
+      if(x&&x.state==='done'&&x.stu){ const k=`reset1:${x.stu.uid}|${s.id}`;
+        return `<td class="pc ${c}">${S.confirm===k?`<span class="confirm">지울까요? <button class="btn sm danger solid" data-act="resetOne" data-id="${esc((x.stu.uids||[x.stu.uid]).join(',')+'|'+s.id)}">초기화</button><button class="btn sm ghost" data-act="cancelConfirm">취소</button></span>`:`<button class="pcbtn" data-act="askConfirm" data-key="${esc(k)}" title="눌러서 이 학생의 제출 내용 초기화">제출 ↺</button>`}</td>`; }
+      return `<td class="pc ${c}">${t}</td>`; }).join('');
+    const stu=parts.length?byKey(parts[0].p,r)?.stu:null;
+    return {r,miss,cells,stu}; });
+  const anyStu=studentsOf(cls.id);
+  const matched=new Set(rows.map(x=>x.stu&&x.stu.uid).filter(Boolean));
+  if(!parts.length) roster.forEach(r=>{ const k=nkey(r.number); const st=anyStu.find(x=>k&&nkey(x.number)===k)||anyStu.find(x=>(x.name||'').trim()===r.name); if(st) matched.add(st.uid); });
+  const strays=anyStu.filter(x=>!matched.has(x.uid));
+  const totalMiss=rows.filter(x=>x.miss>0).length;
+  return `<div class="stack">
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>참여 현황</h2><p class="muted small">평가가 열렸거나 마감된 발표만 보여요. 자기 모둠 발표는 '발표'로 표시되고 미제출로 세지 않아요.</p></div></div>
+    ${editor}
+    ${parts.length?`<div class="kpis"><div class="kpi"><span class="k">한 번이라도 미제출</span><span class="v" style="color:${totalMiss?'var(--pen)':'inherit'}">${totalMiss}<small> / ${roster.length}명</small></span></div>
+      ${parts.map(({s,p})=>`<div class="kpi"><span class="k">${esc(s.title)}</span><span class="v">${p.missing.length}<small>명 미제출</small></span></div>`).join('')}</div>
+    <div class="card tblwrap" style="padding:0"><table class="data stu part">
+      <thead><tr><th>번호</th><th>이름</th>${parts.map(({s})=>`<th class="pcol">${esc(s.title)} <span class="pill ${STATUS[s.status][1]}">${STATUS[s.status][0]}</span></th>`).join('')}<th class="num">미제출</th></tr></thead>
+      <tbody>${rows.map(x=>`<tr class="${x.miss?'has-miss':''}"><td class="mono">${esc(x.r.number||'–')}</td><td><strong>${esc(x.r.name)}</strong>${x.stu?'':' <span class="tag">미접속</span>'}</td>${x.cells}<td class="num">${x.miss?`<strong style="color:var(--pen)">${x.miss}</strong>`:'0'}</td></tr>`).join('')}</tbody>
+    </table></div>`:`<div class="empty">아직 평가를 시작한 발표가 없어요. '평가 시작'을 누르면 여기에 제출 현황이 나타나요.</div>`}
+    ${strays.length?`<div class="note">명단과 짝이 맞지 않는 학생 ${strays.length}명: ${strays.map(x=>esc((x.number?x.number+'번 ':'')+(x.name||''))).join(', ')} · 학생이 번호를 잘못 적었을 수 있어요.</div>`:''}
+  </div>`;
+}
+
+/* per-student scores tab */
+function tStudents(cls){
+  const ss=sessionsOf(cls.id);
+  if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
+  const R=cls.rubric; const sort=S.view.sort||'group';
+  const cMax=R.content.reduce((a,c)=>a+c.max,0), sMax=R.speaking.reduce((a,c)=>a+c.max,0);
+  const rows=[];
+  ss.forEach((sess,gi)=>{ const st=sessionStats(sess.id); if(!st) return;
+    const act={}; st.speaking.forEach(x=>act[x.sp.id]=x);
+    (sess.speakers||[]).forEach((p,si)=>{ const sp=act[p.id];
+      if(sp) rows.push({gi,si,sess,st,sp,grand: st.contentTotal!=null&&sp.total!=null? st.contentTotal+sp.total : null});
+      else rows.push({gi,si,sess,st,sp:{sp:p},absent:true}); }); });
+  if(sort==='number') rows.sort((a,b)=>{ const na=parseInt(a.sp.sp.number,10), nb=parseInt(b.sp.sp.number,10);
+    const ax=isNaN(na)?1e9:na, bx=isNaN(nb)?1e9:nb; return ax-bx || String(a.sp.sp.name).localeCompare(String(b.sp.sp.name),'ko'); });
+  const cell=v=>`<td class="num">${f1(v)}</td>`;
+  const colCount=4+R.content.length+R.speaking.length+3;
+  let body=''; let lastG=-1;
+  for(const r of rows){
+    if(sort==='group' && r.gi!==lastG){ lastG=r.gi; const [lab,pc]=STATUS[r.sess.status||'ready'];
+      body+=`<tr class="grp"><td colspan="${colCount}"><strong>${esc(r.sess.title)}</strong> <span class="pill ${pc}">${lab}</span> <span class="muted small mono">평가 ${r.st.n}명</span></td></tr>`; }
+    const sp=r.sp;
+    if(r.absent){ body+=`<tr class="absent"><td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong> <span class="tag flag">불참</span></td>${sort==='number'?`<td>${esc(r.sess.title)}</td>`:''}<td colspan="${R.content.length+R.speaking.length+4}" class="small">발표에 참여하지 않아 평가하지 않았어요.</td></tr>`; continue; }
+    body+=`<tr>
+      <td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong></td>
+      ${sort==='number'?`<td class="muted">${esc(r.sess.title)}</td>`:''}
+      ${r.st.content.map(x=>cell(x.avg)).join('')}<td class="num sub">${f1(r.st.contentTotal)}</td>
+      ${sp.crits.map(x=>cell(x.avg)).join('')}<td class="num sub">${f1(sp.total)}</td>
+      <td class="num"><div class="gt"><strong>${f1(r.grand)}</strong><span class="track"><span class="fill" style="width:${r.grand==null?0:r.grand/(cMax+sMax)*100}%"></span></span></div></td>
+      <td class="num muted">${r.st.n}</td></tr>`;
+  }
+  return `<div class="stack">
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">발표한 학생마다 받은 평균 점수예요. 내용·구성은 모둠 점수라 같은 모둠 학생에게 똑같이 들어가요.</p></div>
+      <div class="chips" role="group" aria-label="정렬"><button class="chip" aria-pressed="${sort==='group'}" data-act="sortStudents" data-sort="group">모둠순</button><button class="chip" aria-pressed="${sort==='number'}" data-act="sortStudents" data-sort="number">번호순</button></div></div>
+    <div class="card tblwrap" style="padding:0">
+      <table class="data stu">
+        <thead>
+          <tr class="band"><th colspan="${sort==='number'?3:2}"></th><th colspan="${R.content.length+1}" class="bandc">내용·구성 (모둠)</th><th colspan="${R.speaking.length+1}" class="bands">발표 (개인)</th><th colspan="2"></th></tr>
+          <tr><th>번호</th><th>이름</th>${sort==='number'?'<th>모둠</th>':''}
+            ${R.content.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${cMax}</span></th>
+            ${R.speaking.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${sMax}</span></th>
+            <th class="num">총점 <span class="mono">/${cMax+sMax}</span></th><th class="num">평가 수</th></tr>
+        </thead>
+        <tbody>${body||`<tr><td colspan="${colCount}" class="muted">발표자가 없어요.</td></tr>`}</tbody>
+      </table>
+    </div>
+    <p class="muted small">점수는 소수 첫째 자리까지 반올림한 평균이에요. 아직 평가가 없으면 '–'로 표시돼요.</p>
+  </div>`;
+}
+
+/* report tab */
+function tReport(cls){
+  const ss=sessionsOf(cls.id);
+  if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
+  let sid=S.view.sid; if(!sid||!S.sessions[sid]||S.sessions[sid].classId!==cls.id){ sid=(ss.find(s=>s.status==='closed')||ss[0]).id; S.view.sid=sid; }
+  if(!S.reportDraft||S.reportDraft.sid!==sid){
+    const d=S.drafts[sid];
+    S.reportDraft={sid, groupSummary:d?.groupSummary||'', speakerSummaries:clone(d?.speakerSummaries||{}), includeComments:d?d.includeComments!==false:true, dirty:false};
+  }
+  const r=S.reportDraft, sess=S.sessions[sid];
+  return `<div class="stack">
+    <div class="chips">${ss.map(s=>`<button class="chip" aria-pressed="${s.id===sid}" data-act="reportPick" data-id="${esc(s.id)}">${esc(s.title)}${S.pubReports[s.id]?'<span class="n">공개</span>':''}</button>`).join('')}</div>
+    <div class="two">
+      <section class="card stack">
+        <div id="reportMeta">${reportMetaHTML()}</div>
+        <div class="row wrapr">
+          <span class="muted small">대시보드의 학생 의견을 참고해 피드백을 적어 주세요. 필터·숨김 처리된 의견은 리포트에 나가지 않아요.</span>
+        </div>
+        <label class="fld">모둠 종합 피드백 (내용·구성)<textarea id="rpGroup" data-rp="group" rows="6" placeholder="잘한 점: …&#10;더 나아지려면: …">${esc(r.groupSummary)}</textarea></label>
+        ${(sess.speakers||[]).filter(x=>!x.absent).map(sp=>`<label class="fld">${esc(sp.name)} · 발표 피드백<textarea id="rpSp-${esc(sp.id)}" data-rp="sp|${esc(sp.id)}" rows="4" placeholder="잘한 점: …&#10;더 나아지려면: …">${esc(r.speakerSummaries[sp.id]||'')}</textarea></label>`).join('')}
+        <label class="switch"><input type="checkbox" id="rpInc" data-rp="inc" ${r.includeComments?'checked':''}>학생 의견 원문(익명)도 함께 보여 주기</label>
+        <div class="row wrapr">
+          <button class="btn" data-act="reportSave">임시 저장</button>
+          <button class="btn primary" data-act="reportPublish">${S.pubReports[sid]?'공개 내용 갱신':'학생에게 공개'}</button>
+          ${S.pubReports[sid]?`<button class="btn danger" data-act="reportUnpublish">공개 취소</button>`:''}
+        </div>
+      </section>
+      <section class="stack"><div class="eyebrow">학생에게 보이는 화면</div><div id="reportPreview">${reportPreviewHTML()}</div></section>
+    </div>
+  </div>`;
+}
+function reportMetaHTML(){
+  const sid=S.reportDraft.sid, sess=S.sessions[sid]; if(!sess) return '';
+  const [lab,pc]=STATUS[sess.status||'ready']; const pub=S.pubReports[sid]; const d=S.drafts[sid];
+  return `<div class="row wrapr"><h2>${esc(sess.title)}</h2><span class="pill ${pc}">${lab}</span></div>
+    <p class="muted small">제출 ${submitCount(sid,sess.classId)}명 · ${pub?`<strong style="color:var(--ok)">${fmtTime(pub.publishedAt)}에 공개됨</strong> (이후 바뀐 내용은 '공개 내용 갱신'을 눌러야 반영돼요)`:'아직 학생에게 공개되지 않았어요'}${d?.updatedAt?` · 임시 저장 ${fmtTime(d.updatedAt)}`:''}</p>
+    ${sess.status==='open'?`<div class="note" style="margin-top:8px">아직 평가 중이에요. 마감한 뒤 리포트를 공개하면 모든 의견이 반영돼요.</div>`:''}`;
+}
+function reportPreviewHTML(){ const rep=buildReport(S.reportDraft.sid, S.reportDraft); return rep?renderReport(rep):''; }
+
+function renderReport(rep){
+  const bar=(x)=>`<div class="barrow"><span class="lab">${esc(x.name)}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.max}</span></div>`;
+  const quotes=(arr)=>arr&&arr.length?`<details class="more"><summary>친구들의 의견 ${arr.length}개 보기</summary><ul class="quotes" style="margin-top:10px">${arr.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details>`:'';
+  return `<article class="report">
+    <header><span class="eyebrow">종합 피드백 리포트</span><h1>${esc(rep.title)}</h1><p class="muted small">${rep.topic?esc(rep.topic)+' · ':''}친구 ${rep.n}명이 평가했어요</p></header>
+    <section>
+      <div class="sec-head"><h2>내용·구성</h2><div class="total"><span class="big">${f1(rep.contentTotal)}</span><span class="muted">/ ${rep.contentMax}</span></div></div>
+      <div class="bars">${rep.content.map(bar).join('')}</div>
+      ${rep.groupSummary?`<div class="summary">${esc(rep.groupSummary)}</div>`:''}
+      ${quotes(rep.contentComments)}
+    </section>
+    <section>
+      <h2>발표</h2>
+      ${rep.speakers.map(s=>`<div class="spcard">
+        <div class="sec-head"><div class="spkname"><span class="av">${esc((s.name||'?').slice(0,1))}</span>${esc(s.name)}</div><div class="total"><span class="big" style="font-size:26px">${f1(s.total)}</span><span class="muted">/ ${s.totalMax}</span></div></div>
+        <div class="bars">${s.crits.map(bar).join('')}</div>
+        ${s.summary?`<div class="summary">${esc(s.summary)}</div>`:''}
+        ${quotes(s.comments)}
+      </div>`).join('')}
+    </section>
+  </article>`;
+}
+
+/* ===== student ===== */
+function studentView(){
+  if(!S.preview && !S.uid) return `<main class="wrap narrow"><div class="card stack"><h2>로그인이 필요해요</h2><p class="muted">평가를 제출하려면 Claude에 로그인한 상태로 이 페이지를 열어야 해요.</p></div></main>`;
+  const v=S.view;
+  if(v.name==='eval' && S.sessions[v.sid]) return sEval();
+  if(v.name==='report' && S.pubReports[v.sid]) return `<main class="wrap narrow"><button class="btn ghost sm" data-act="sBack" style="align-self:flex-start">← 돌아가기</button>${renderReport(S.pubReports[v.sid])}</main>`;
+  let cid=v.cid || (S.preview?null:lsGet('pr_class'));
+  if(cid && S.classes[cid]){ S.view={name:'sclass',cid}; return sClass(S.classes[cid]); }
+  S.view={name:'shome'};
+  const cl=classList();
+  return `<main class="wrap narrow">
+    <section class="stack"><h1>우리 반을 골라 주세요</h1><p class="muted">고른 반의 발표를 평가하고, 선생님이 공개한 피드백 리포트를 볼 수 있어요.</p></section>
+    ${cl.length?`<div class="grid">${cl.map(c=>`<button class="card ccard" style="text-align:left;cursor:pointer" data-act="sPickClass" data-id="${esc(c.id)}"><h3>${esc(c.name)}</h3><span class="muted small">발표 ${sessionsOf(c.id).length}개</span></button>`).join('')}</div>`
+      :`<div class="empty">아직 선생님이 반을 만들지 않았어요.</div>`}
+  </main>`;
+}
+function sClass(cls){
+  const prof=myProfile(cls.id);
+  const ss=sessionsOf(cls.id);
+  const warn = (!S.preview && S.canWrite===false)?`<div class="note">이 페이지에 평가를 저장할 권한이 없어요. 선생님께 '참여자' 권한을 요청해 주세요.</div>`:'';
+  const pd=S.profileDraft;
+  const editing = !prof || (pd && pd.cid===cls.id && pd.open);
+  if(editing && (!pd || pd.cid!==cls.id)) S.profileDraft={cid:cls.id, open:!!prof, number:prof?.number||'', name:prof?.name||'', myGroup:prof?.myGroup||'', dirty:false};
+  const p=S.profileDraft;
+  const profileHTML = editing ? `<section class="card stack">
+      <h2 class="h3">${prof?'내 정보 수정':'처음이네요! 내 정보를 적어 주세요'}</h2>
+      <p class="muted small">선생님이 누가 제출했는지 확인할 때만 써요. 친구들에게는 보이지 않아요.</p>
+      <div class="row wrapr" style="align-items:flex-end">
+        <label class="fld" style="width:90px">번호<input type="number" id="pfNum" min="1" max="99" data-pf="number" value="${esc(p.number)}"></label>
+        <label class="fld" style="flex:1 1 160px">이름<input type="text" id="pfName" data-pf="name" value="${esc(p.name)}" maxlength="20"></label>
+        <label class="fld" style="flex:1 1 200px">우리 모둠<select id="pfGroup" data-pf="myGroup"><option value="">아직 모르겠어요</option>${ss.map(s=>`<option value="${esc(s.id)}" ${p.myGroup===s.id?'selected':''}>${esc(s.title)}</option>`).join('')}</select></label>
+      </div>
+      <div class="row"><button class="btn primary" data-act="sSaveProfile">저장</button>${prof?`<button class="btn ghost" data-act="sCancelProfile">취소</button>`:''}</div>
+    </section>`
+    : `<section class="card row wrapr" style="justify-content:space-between"><div><strong>${esc((prof.number?prof.number+'번 ':'')+prof.name)}</strong><span class="muted small"> · 우리 모둠: ${esc(S.sessions[prof.myGroup]?.title||'선택 안 함')}</span></div><div class="row wrapr" style="gap:6px"><button class="btn sm ghost" data-act="sEditProfile">내 정보 수정</button>${S.preview?'':confirmBtn('switch','다른 학생으로 바꾸기','sSwitchDo','x','이 기기에서 새 학생으로 시작할까요? (지금 학생의 제출 내용은 그대로 남아요)','바꾸기')}</div></section>`;
+  const reps=ss.filter(s=>S.pubReports[s.id]);
+  return `<main class="wrap narrow">
+    <div class="sec-head"><div class="stack" style="gap:2px"><span class="eyebrow">우리 반</span><h1>${esc(cls.name)}</h1></div><button class="btn ghost sm" data-act="sChangeClass">반 바꾸기</button></div>
+    ${warn}
+    ${profileHTML}
+    ${prof?`<section class="stack">
+      <h2>발표 평가</h2>
+      ${ss.length?`<div class="slist">${ss.map(s=>{
+        const st=s.status||'ready'; const [lab,pc]=STATUS[st]; const mine=prof.myGroup===s.id; const done=!!(prof.items&&prof.items[s.id]);
+        let act='';
+        if(mine) act=`<span class="tag">우리 모둠 발표</span>`;
+        else if(st==='open') act=`<button class="btn sm ${done?'':'primary'}" data-act="sOpenEval" data-id="${esc(s.id)}">${done?'수정하기':'평가하기'}</button>`;
+        else if(st==='closed') act=`<span class="muted small">${done?'제출 완료':'제출하지 않음'}</span>`;
+        else act=`<span class="muted small">발표 후에 열려요</span>`;
+        return `<article class="card srow" style="grid-template-columns:1fr auto">
+          <div class="body"><div class="title"><strong>${esc(s.title)}</strong><span class="pill ${pc}">${lab}</span>${done?'<span class="tag" style="background:var(--ok-soft);color:var(--ok)">제출함</span>':''}</div>
+          ${s.topic?`<div class="muted small">${esc(s.topic)}</div>`:''}<div class="spk">${(s.speakers||[]).filter(p=>!p.absent).map(p=>`<span>${esc(p.name)}</span>`).join('')}</div></div>
+          <div class="acts">${act}</div></article>`}).join('')}</div>`:`<div class="empty">아직 등록된 발표가 없어요.</div>`}
+    </section>
+    <section class="stack">
+      <h2>피드백 리포트</h2>
+      ${reps.length?`<div class="slist">${reps.map(s=>`<button class="card srow" style="grid-template-columns:1fr auto;text-align:left;cursor:pointer" data-act="sOpenReport" data-id="${esc(s.id)}"><div class="body"><strong>${esc(s.title)}</strong><span class="muted small">${fmtTime(S.pubReports[s.id].publishedAt)} 공개</span></div><span class="btn sm">보기 →</span></button>`).join('')}</div>`
+        :`<div class="empty">선생님이 리포트를 공개하면 여기에 나타나요.</div>`}
+    </section>`:''}
+  </main>`;
+}
+function evalProgress(){
+  const d=S.evalDraft, sess=S.sessions[d.sid], R=S.classes[sess.classId].rubric;
+  let total=0, done=0; const missing=[];
+  const okR=t=>(t||'').trim().length>=REASON_MIN;
+  for(const c of R.content){ total++; const v=d.content[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`내용·구성 – ${c.name} 점수`); }
+  total++; if(okR(d.contentReason)) done++; else missing.push('내용·구성 근거');
+  for(const sp of (sess.speakers||[]).filter(x=>!x.absent)){
+    for(const c of R.speaking){ total++; const v=d.speaking[sp.id]?.[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`${sp.name} – ${c.name} 점수`); }
+    total++; if(okR(d.speakerReasons[sp.id])) done++; else missing.push(`${sp.name} 근거`);
+  }
+  return {total, done, missing};
+}
+function sEval(){
+  const sid=S.view.sid, sess=S.sessions[sid], cls=S.classes[sess.classId], R=cls.rubric;
+  const prof=myProfile(cls.id);
+  if(!S.evalDraft||S.evalDraft.sid!==sid){
+    const ex=prof?.items?.[sid];
+    S.evalDraft={sid, content:clone(ex?.content||{}), speaking:clone(ex?.speaking||{}), contentReason:ex?.contentReason||'', speakerReasons:clone(ex?.speakerReasons||{})}; S.evalTried=false;
+  }
+  const d=S.evalDraft;
+  const missS=v=>S.evalTried && !(v&&typeof v.score==='number');
+  const missR=t=>S.evalTried && (t||'').trim().length<REASON_MIN;
+  const critHTML=(c, v, nameKey, path)=>`<div class="card crit-card ${missS(v)?'reason-miss':''}" style="${missS(v)?'border-color:var(--pen)':''}">
+    <div class="ch"><strong>${esc(c.name)}</strong><span class="mono muted small">${c.max}점</span></div>
+    <div class="lvls" role="radiogroup" aria-label="${esc(c.name)}">${scoresOf(c).map(s=>`<label class="lvl"><input type="radio" name="${nameKey}" value="${s}" data-ev="${path}" ${v&&v.score===s?'checked':''}><span class="score-badge">${s}</span><span class="d">${esc(c.levels[s]||'')}</span></label>`).join('')}</div>
+  </div>`;
+  const reasonHTML=(id,path,label,val)=>`<div class="card stack ${missR(val)?'reason-miss':''}" style="gap:8px;background:var(--surface-2)">
+    <label class="fld">${label}<textarea id="${id}" data-evr="${path}" rows="4" placeholder="위 점수를 준 이유를 발표에서 본 장면을 예로 들어 구체적으로 적어 주세요.">${esc(val||'')}</textarea></label></div>`;
+  const pg=evalProgress();
+  return `<main class="wrap narrow">
+    <button class="btn ghost sm" data-act="sCancelEval" style="align-self:flex-start">← 목록으로</button>
+    <section class="stack" style="gap:6px"><span class="eyebrow">${esc(cls.name)} · 동료 평가</span><h1>${esc(sess.title)}</h1>${sess.topic?`<p class="muted">${esc(sess.topic)}</p>`:''}</section>
+    <div class="note info">항목마다 점수를 고르고, 근거는 '내용·구성'에 한 번, 발표자마다 한 번씩 적어 주세요. 평가 내용은 선생님만 보고, 친구들에게는 선생님이 정리한 리포트만 보여 줘요. 친구가 읽는다고 생각하고 존중하는 말로 써 주세요.</div>
+    ${S.preview?`<div class="note">미리보기 화면이에요. 제출해도 저장되지 않아요.</div>`:''}
+    <section class="stack"><h2>내용·구성 <span class="muted small">모둠 전체 평가</span></h2>
+      ${R.content.map(c=>critHTML(c, d.content[c.id], `c-${c.id}`, `c|${c.id}`)).join('')}
+      ${reasonHTML('r-content','c','내용·구성 점수의 근거',d.contentReason)}</section>
+    <section class="stack"><h2>발표 <span class="muted small">발표자마다 따로 평가</span></h2>
+      ${(sess.speakers||[]).filter(x=>!x.absent).map(sp=>`<div class="spkblock"><div class="spkname"><span class="av">${esc((sp.name||'?').slice(0,1))}</span>${esc(sp.name)}</div>
+        ${R.speaking.map(c=>critHTML(c, d.speaking[sp.id]?.[c.id], `s-${sp.id}-${c.id}`, `s|${sp.id}|${c.id}`)).join('')}
+        ${reasonHTML('r-sp-'+sp.id,'s|'+sp.id,`${esc(sp.name)}의 발표 점수 근거`,d.speakerReasons[sp.id])}</div>`).join('')}</section>
+    <div id="evErr" class="err-list">${S.evalTried&&pg.missing.length?`아직 덜 채운 항목: ${esc(pg.missing.join(', '))} (근거는 ${REASON_MIN}자 이상)`:''}</div>
+    <div class="submitbar">
+      <div class="prog"><span id="evProgTxt">${pg.done} / ${pg.total} 항목 완료</span><div class="track"><div class="fill" id="evProgBar" style="width:${pg.total?pg.done/pg.total*100:0}%"></div></div></div>
+      <button class="btn primary" data-act="sSubmitEval">${prof?.items?.[sid]?'수정 내용 제출':'평가 제출'}</button>
+    </div>
+  </main>`;
+}
+
+/* ---------- actions ---------- */
+const A = {
+  home(){ S.view={name:(S.teacher&&!S.preview)?'home':'shome'}; resetDrafts(); render(); window.scrollTo(0,0); },
+  togglePreview(){ S.preview=!S.preview; S.previewDoc={byClass:{}}; S.view={name:'home'}; resetDrafts(); render(); },
+  askConfirm(el){ S.confirm=el.dataset.key; render(); },
+  cancelConfirm(){ S.confirm=null; render(); },
+  async createClass(){
+    const name=$('#newClassName').value.trim(); if(!name) return toast('반 이름을 입력해 주세요.',true);
+    const src=S.classes[$('#newClassCopy').value];
+    const id=gid('c');
+    const doc={id,name,order:Date.now(),createdAt:nowISO(),filterOn:src?src.filterOn!==false:true,banned:src?clone(src.banned):DEF_BANNED.slice(),rubric:src?clone(src.rubric):clone(DEF_RUBRIC)};
+    if(await run(()=>S.db.doc('cfg/root/classes/'+id).set(doc),`'${name}' 반을 만들었어요.`)){ S.classes[id]=doc; S.view={name:'class',cid:id,tab:'sessions'}; render(); }
+  },
+  openClass(el){ S.view={name:'class',cid:el.dataset.id,tab:'sessions'}; resetDrafts(); render(); },
+  async delClass(el){
+    const cid=el.dataset.id; S.confirm=null;
+    const ok=await run(async()=>{
+      for(const s of sessionsOf(cid)){ await S.db.doc('cfg/root/sessions/'+s.id).delete(); await S.db.doc('drafts/root/reports/'+s.id).delete(); await S.db.doc('cfg/root/reports/'+s.id).delete(); }
+      await S.db.doc('drafts/root/mod/'+cid).delete();
+      for(const [uid,d] of Object.entries(S.evals)){ if(d.byClass&&d.byClass[cid]){ const nd=clone(d); delete nd.byClass[cid]; await S.db.doc('evals/'+uid).set(nd); } }
+      await S.db.doc('cfg/root/classes/'+cid).delete();
+    },'반을 삭제했어요.');
+    if(ok && S.view.cid===cid) S.view={name:'home'};
+    render();
+  },
+  tab(el){ S.view.tab=el.dataset.tab; S.sessionForm=null; S.rosterDraft=null; S.confirm=null; render(); },
+  renameStart(){ S.renaming=true; render(); $('#renameInput')?.focus(); },
+  renameCancel(){ S.renaming=false; render(); },
+  async renameSave(){ const n=$('#renameInput').value.trim(); if(!n) return toast('반 이름을 입력해 주세요.',true); const cid=S.view.cid;
+    if(await run(()=>S.db.doc('cfg/root/classes/'+cid).update({name:n}),'이름을 바꿨어요.')){ S.renaming=false; render(); } },
+  async quickFilter(el){ const cid=S.view.cid; const on=el.checked;
+    await run(()=>S.db.doc('cfg/root/classes/'+cid).update({filterOn:on}), on?'피드백 필터를 켰어요.':'피드백 필터를 껐어요.');
+    if(S.rubricDraft&&S.rubricDraft.cid===cid){ S.rubricDraft.filterOn=on; } render(); },
+  // sessions
+  newSession(){ S.sessionForm={id:null,title:'',topic:'',speakers:[{id:gid('p'),name:''},{id:gid('p'),name:''}]}; render(); $('#sfTitle')?.focus(); },
+  editSession(el){ const s=S.sessions[el.dataset.id]; S.sessionForm={id:s.id,title:s.title,topic:s.topic||'',speakers:clone(s.speakers||[])}; render(); },
+  cancelSession(){ S.sessionForm=null; render(); },
+  async saveSession(){
+    const f=S.sessionForm; const cid=S.view.cid;
+    if(!f.title.trim()) return toast('모둠 이름을 입력해 주세요.',true);
+    const sp=f.speakers.map((p,i)=>({id:p.id,name:(p.name||'').trim()||`발표자 ${i+1}`,number:String(p.number||'').trim(),...(p.absent?{absent:true}:{})}));
+    const id=f.id||gid('s'); const prev=S.sessions[id];
+    const doc={id,classId:cid,title:f.title.trim(),topic:f.topic.trim(),speakers:sp,status:prev?.status||'ready',order:prev?.order??Date.now(),createdAt:prev?.createdAt||nowISO()};
+    if(await run(()=>S.db.doc('cfg/root/sessions/'+id).set(doc), f.id?'발표를 수정했어요.':'발표를 추가했어요.')){ S.sessions[id]=doc; S.sessionForm=null; render(); }
+  },
+  async setStatus(el){ const id=el.dataset.id, st=el.dataset.st;
+    await run(()=>S.db.doc('cfg/root/sessions/'+id).update({status:st}), st==='open'?'평가를 시작했어요. 학생 화면에 평가지가 열렸어요.':'평가를 마감했어요.'); },
+  async moveSession(el){ const ss=sessionsOf(S.view.cid); const i=ss.findIndex(s=>s.id===el.dataset.id); const j=i+Number(el.dataset.dir); if(j<0||j>=ss.length) return;
+    const a=ss[i], b=ss[j]; let oa=a.order??0, ob=b.order??0; if(oa===ob) ob=oa+1;
+    await run(async()=>{ await S.db.doc('cfg/root/sessions/'+a.id).update({order:ob}); await S.db.doc('cfg/root/sessions/'+b.id).update({order:oa}); }); },
+  async delSession(el){ const id=el.dataset.id; S.confirm=null;
+    await run(async()=>{ await S.db.doc('cfg/root/sessions/'+id).delete(); await S.db.doc('drafts/root/reports/'+id).delete(); await S.db.doc('cfg/root/reports/'+id).delete(); },'발표를 삭제했어요.'); render(); },
+  goDash(el){ S.view.tab='dash'; S.view.sid=el.dataset.id; render(); },
+  goReport(el){ S.view.tab='report'; S.view.sid=el.dataset.id; S.reportDraft=null; render(); },
+  pickSession(el){ S.view.sid=el.dataset.id; render(); },
+  copyLink(el){ const url=linkFor(el.dataset.id);
+    const fallback=()=>{ const i=$('#shareLink'); if(i&&i.value===url){ i.focus(); i.select(); toast('링크를 선택했어요. Ctrl+C(⌘+C)로 복사해 주세요.'); } else toast('복사하지 못했어요. 반을 열어 링크 칸에서 직접 복사해 주세요.',true); };
+    try{ const p=navigator.clipboard&&navigator.clipboard.writeText(url); if(p) p.then(()=>toast('학생용 링크를 복사했어요.'),fallback); else fallback(); }catch(e){ fallback(); } },
+  editRoster(){ const cls=S.classes[S.view.cid]; S.rosterDraft={cid:cls.id,text:(cls.roster||[]).map(r=>`${r.number?r.number+' ':''}${r.name}`).join('\n')}; render(); },
+  cancelRoster(){ S.rosterDraft=null; render(); },
+  async saveRoster(){ const cid=S.rosterDraft.cid;
+    const roster=S.rosterDraft.text.split('\n').map(l=>l.replace(/\t/g,' ').trim()).filter(Boolean).map(l=>{ const m=l.match(/^(\d+)\s*(?:번)?\s*[.,)\-:]?\s*(.+)$/); return m?{number:m[1],name:m[2].trim()}:{number:'',name:l}; }).filter(r=>r.name);
+    if(await run(()=>S.db.doc('cfg/root/classes/'+cid).update({roster}),`명단 ${roster.length}명을 저장했어요.`)){ S.classes[cid]={...S.classes[cid],roster}; S.rosterDraft=null; render(); } },
+  async resetSession(el){ const sid=el.dataset.id, sess=S.sessions[sid]; S.confirm=null; if(!sess) return;
+    const ok=await run(async()=>{
+      await removeItems(sess.classId, sid, null);
+      const mod=S.mods[sess.classId]&&S.mods[sess.classId].hidden;
+      if(mod){ const keep={}; for(const k in mod) if(!k.includes('|'+sid+'|')&&!k.endsWith('|'+sid+'|c')) keep[k]=mod[k]; await S.db.doc('drafts/root/mod/'+sess.classId).set({hidden:keep}); }
+      await S.db.doc('drafts/root/reports/'+sid).delete(); await S.db.doc('cfg/root/reports/'+sid).delete();
+      await S.db.doc('cfg/root/sessions/'+sid).update({status:'ready'});
+    },`'${sess.title}' 평가를 초기화했어요. '평가 시작'을 누르면 다시 열려요.`);
+    if(ok && S.reportDraft && S.reportDraft.sid===sid) S.reportDraft=null;
+    render(); },
+  async resetOne(el){ const [uid,sid]=el.dataset.id.split('|'); const sess=S.sessions[sid]; S.confirm=null; if(!sess) return;
+    await run(()=>removeItems(sess.classId, sid, uid),'이 학생의 제출 내용을 지웠어요. 평가가 열려 있으면 다시 제출할 수 있어요.'); render(); },
+  sortStudents(el){ S.view.sort=el.dataset.sort; render(); },
+  async toggleAbsent(el){ const s=S.sessions[el.dataset.id]; if(!s) return;
+    const sp=clone(s.speakers||[]); const p=sp.find(x=>x.id===el.dataset.sp); if(!p) return;
+    if(!p.absent && sp.filter(x=>!x.absent).length<=1) return toast('발표자가 한 명은 남아 있어야 해요.',true);
+    p.absent=!p.absent; S.sessions[s.id]={...s,speakers:sp}; render();
+    await run(()=>S.db.doc('cfg/root/sessions/'+s.id).update({speakers:sp}), p.absent?`${p.name} 학생을 불참 처리했어요.`:`${p.name} 학생을 다시 평가 대상으로 넣었어요.`); },
+  async toggleHide(el){ const cid=S.view.cid; const key=el.dataset.key;
+    const cur=clone((S.mods[cid]&&S.mods[cid].hidden)||{}); if(cur[key]) delete cur[key]; else cur[key]=true;
+    S.mods[cid]={hidden:cur}; render();
+    await run(()=>S.db.doc('drafts/root/mod/'+cid).set({hidden:cur})); },
+  // rubric
+  addCrit(el){ const k=el.dataset.k; S.rubricDraft.rubric[k].push(normCrit({id:gid(k==='content'?'c_':'s_'),name:'',max:3,min:1,step:1,levels:{}})); S.rubricDraft.dirty=true; render(); },
+  addStep(el){ const c=S.rubricDraft.rubric[el.dataset.k][+el.dataset.i]; let n=Math.min(...c.steps)-1; while(n>=0&&c.steps.includes(n)) n--; if(n<0){ n=Math.max(...c.steps)+1; }
+    c.steps.push(n); normCrit(c); S.rubricDraft.dirty=true; render(); },
+  delStep(el){ const c=S.rubricDraft.rubric[el.dataset.k][+el.dataset.i]; if(c.steps.length<=2) return; c.steps=c.steps.filter(x=>x!==+el.dataset.s); normCrit(c); S.rubricDraft.dirty=true; render(); },
+  delCrit(el){ const k=el.dataset.k; S.rubricDraft.rubric[k].splice(+el.dataset.i,1); S.rubricDraft.dirty=true; render(); },
+  moveCrit(el){ const k=el.dataset.k, i=+el.dataset.i, j=i+Number(el.dataset.dir); const arr=S.rubricDraft.rubric[k]; if(j<0||j>=arr.length) return; [arr[i],arr[j]]=[arr[j],arr[i]]; S.rubricDraft.dirty=true; render(); },
+  resetRubric(){ loadRubricDraft(S.classes[S.view.cid]); render(); },
+  copyRubric(){ const src=S.classes[$('#copyFrom').value]; if(!src) return; S.rubricDraft.rubric=clone(src.rubric); S.rubricDraft.dirty=true; render(); toast(`'${src.name}' 기준을 불러왔어요. 저장을 눌러야 반영돼요.`); },
+  async saveRubric(){
+    const d=S.rubricDraft; const cid=d.cid;
+    for(const k of ['content','speaking']){ if(!d.rubric[k].length) return toast(k==='content'?'내용·구성 평가요소가 하나 이상 있어야 해요.':'발표 평가요소가 하나 이상 있어야 해요.',true);
+      for(const c of d.rubric[k]){ normCrit(c); if(!c.name.trim()) return toast('이름이 빈 평가요소가 있어요.',true); c.name=c.name.trim(); } }
+    const banned=d.bannedText.split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+    if(await run(()=>S.db.doc('cfg/root/classes/'+cid).update({rubric:clone(d.rubric),filterOn:d.filterOn,banned}),'평가 기준을 저장했어요.')){
+      S.classes[cid]={...S.classes[cid],rubric:clone(d.rubric),filterOn:d.filterOn,banned}; d.dirty=false; render(); }
+  },
+  // report
+  reportPick(el){ S.view.sid=el.dataset.id; S.reportDraft=null; render(); },
+  async reportSave(){ await saveReportDraft('임시 저장했어요.'); },
+  async reportPublish(){
+    const r=S.reportDraft; const rep=buildReport(r.sid,r); if(!rep) return;
+    if(!rep.n) return toast('제출된 평가가 없어 공개할 내용이 없어요.',true);
+    if(!await saveReportDraft()) return;
+    await run(()=>S.db.doc('cfg/root/reports/'+r.sid).set({...rep,publishedAt:nowISO()}),'학생들에게 리포트를 공개했어요.');
+  },
+  async reportUnpublish(){ const sid=S.reportDraft.sid; await run(()=>S.db.doc('cfg/root/reports/'+sid).delete(),'공개를 취소했어요.'); },
+  reportStop(){ S.aiCtl?.abort(); },
+  async reportAI(){
+    const sample=C?await C.use('sample'):null;
+    if(!sample) return toast('이 화면에서는 AI 요약을 쓸 수 없어요. 직접 작성해 주세요.',true);
+    const r=S.reportDraft; const rep=buildReport(r.sid,{...r,includeComments:true});
+    if(!rep||!rep.n) return toast('아직 제출된 평가가 없어요.',true);
+    const data={발표:rep.title,주제:rep.topic,평가참여:rep.n,
+      내용구성:{기준:rep.content.map(c=>({기준:c.name,평균:f1(c.avg),만점:c.max})),근거:rep.contentComments.slice(0,40).map(t=>t.slice(0,400))},
+      발표자:rep.speakers.map(s=>({id:s.id,이름:s.name,기준:s.crits.map(c=>({기준:c.name,평균:f1(c.avg),만점:c.max})),근거:s.comments.slice(0,30).map(t=>t.slice(0,400))}))};
+    const prompt=`당신은 중학교 영어 교사를 돕는 조수입니다. 아래는 학생들이 한 모둠의 영어 발표를 동료 평가한 결과(평균 점수와 익명 근거)입니다. 학생들에게 보여 줄 종합 피드백을 한국어로 작성하세요.
+규칙:
+- 중학생이 이해하기 쉬운 따뜻하고 존중하는 해요체로 씁니다.
+- 각 피드백은 "잘한 점:"과 "더 나아지려면:" 두 줄로, 각각 1~3문장입니다. 여러 친구가 공통으로 말한 내용을 우선 반영하고 구체적인 행동을 제안합니다.
+- 평가한 학생을 짐작할 수 있는 표현, 비꼬거나 공격적인 표현, 비속어는 쓰지 않습니다. 근거 중 공격적인 의견은 무시합니다.
+- 점수 숫자를 나열하지 말고 의미로 풀어 씁니다.
+- group은 모둠의 내용·구성(PPT 포함) 피드백, speakers는 각 발표자의 발표(speaking: 발음, 전달력, 태도 등) 피드백입니다.
+출력: 다른 말 없이 JSON 하나만. 형식: {"group":"잘한 점: ...\\n더 나아지려면: ...","speakers":{"<발표자 id>":"잘한 점: ...\\n더 나아지려면: ..."}}
+데이터:
+${JSON.stringify(data)}`;
+    S.aiBusy=true; S.aiCtl=new AbortController(); render();
+    try{
+      const out=await sample.json(prompt,{signal:S.aiCtl.signal,cache:false});
+      if(S.reportDraft&&S.reportDraft.sid===r.sid&&out&&typeof out==='object'){
+        if(typeof out.group==='string') S.reportDraft.groupSummary=out.group;
+        if(out.speakers&&typeof out.speakers==='object') for(const [k,v] of Object.entries(out.speakers)) if(typeof v==='string') S.reportDraft.speakerSummaries[k]=v;
+        S.reportDraft.dirty=true; toast('초안을 채웠어요. 읽어 보고 고친 뒤 공개해 주세요.');
+      }
+    }catch(e){
+      const c=e&&e.code;
+      if(c==='cancelled'){} else if(c==='not_granted'||c==='sampling_disabled') toast('AI 사용이 허용되지 않았어요. 직접 작성해 주세요.',true);
+      else if(c==='rate_limited') toast('AI 사용량이 많아요. 잠시 뒤 다시 눌러 주세요.',true);
+      else if(c==='invalid_json') toast('AI 답을 읽지 못했어요. 한 번 더 눌러 주세요.',true);
+      else toast('AI 요약을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.',true);
+    }finally{ S.aiBusy=false; S.aiCtl=null; render(); }
+  },
+  // student
+  sPickClass(el){ S.view={name:'sclass',cid:el.dataset.id}; if(!S.preview) lsSet('pr_class',el.dataset.id); S.profileDraft=null; render(); },
+  sChangeClass(){ if(!S.preview) lsSet('pr_class',null); S.view={name:'shome'}; S.profileDraft=null; render(); },
+  sEditProfile(){ const cid=S.view.cid, p=myProfile(cid); S.profileDraft={cid,open:true,number:p?.number||'',name:p?.name||'',myGroup:p?.myGroup||'',dirty:false}; render(); },
+  sCancelProfile(){ S.profileDraft=null; render(); },
+  async sSaveProfile(){
+    const p=S.profileDraft, cid=S.view.cid;
+    if(!String(p.name).trim()) return toast('이름을 입력해 주세요.',true);
+    const ok=await saveMy(doc=>{ doc.byClass=doc.byClass||{}; const cur=doc.byClass[cid]||{items:{}}; doc.byClass[cid]={...cur,number:String(p.number||'').trim(),name:String(p.name).trim(),myGroup:p.myGroup||''}; },'저장했어요.');
+    if(ok){ S.profileDraft=null; render(); }
+  },
+  sOpenEval(el){ S.view={name:'eval',sid:el.dataset.id,cid:S.view.cid}; S.evalDraft=null; render(); window.scrollTo(0,0); },
+  sCancelEval(){ S.view={name:'sclass',cid:S.sessions[S.view.sid]?.classId||S.view.cid}; S.evalDraft=null; render(); },
+  async sSubmitEval(){
+    const sid=S.view.sid, sess=S.sessions[sid];
+    if(!sess||sess.status!=='open') return toast('평가가 마감되어 제출할 수 없어요.',true);
+    const pg=evalProgress(); S.evalTried=true;
+    if(pg.missing.length){ render(); toast(`${pg.missing.length}개 항목을 더 채워 주세요.`,true); return; }
+    const d=clone(S.evalDraft); const cid=sess.classId;
+    const ok=await saveMy(doc=>{ doc.byClass=doc.byClass||{}; const cur=doc.byClass[cid]||{}; cur.items=cur.items||{}; cur.items[sid]={content:d.content,speaking:d.speaking,contentReason:d.contentReason.trim(),speakerReasons:d.speakerReasons,at:nowISO()}; doc.byClass[cid]=cur; }, S.preview?'미리보기라 저장되지 않았어요.':'제출했어요! 마감 전까지는 고칠 수 있어요.');
+    if(ok){ S.view={name:'sclass',cid}; S.evalDraft=null; render(); window.scrollTo(0,0); }
+  },
+  sOpenReport(el){ S.view={name:'report',sid:el.dataset.id,cid:S.view.cid}; render(); window.scrollTo(0,0); },
+  sBack(){ S.view={name:'sclass',cid:S.sessions[S.view.sid]?.classId||S.view.cid}; render(); }
+};
+function resetDrafts(){ S.rosterDraft=null; S.rubricDraft=null; S.sessionForm=null; S.evalDraft=null; S.profileDraft=null; S.reportDraft=null; S.confirm=null; S.renaming=false; }
+async function removeItems(cid, sid, onlyUid){
+  for(const [uid,d] of Object.entries(S.evals)){
+    if(onlyUid&&!String(onlyUid).split(',').includes(uid)) continue;
+    if(!(d.byClass&&d.byClass[cid]&&d.byClass[cid].items&&d.byClass[cid].items[sid])) continue;
+    const ref=S.db.doc('evals/'+uid); const snap=await ref.get(); if(!snap.exists) continue;
+    const nd=clone(snap.data()); if(nd.byClass&&nd.byClass[cid]&&nd.byClass[cid].items){ delete nd.byClass[cid].items[sid]; nd.updatedAt=nowISO(); await ref.set(nd); }
+  }
+}
+async function saveReportDraft(msg){
+  const r=S.reportDraft; const sess=S.sessions[r.sid];
+  const ok=await run(()=>S.db.doc('drafts/root/reports/'+r.sid).set({sid:r.sid,classId:sess.classId,groupSummary:r.groupSummary,speakerSummaries:r.speakerSummaries,includeComments:r.includeComments,updatedAt:nowISO()}),msg);
+  if(ok) r.dirty=false; return ok;
+}
+async function saveMy(mut, okMsg){
+  if(S.preview){ mut(S.previewDoc); toast(okMsg); return true; }
+  return run(async()=>{
+    const ref=S.db.doc('evals/'+S.uid); const snap=await ref.get();
+    const doc=snap.exists?clone(snap.data()):{byClass:{}};
+    mut(doc); doc.updatedAt=nowISO(); await ref.set(doc); S.myDoc=doc;
+  }, okMsg);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]'); if(!el) return;
+  const fn=A[el.dataset.act]; if(fn){ e.preventDefault(); fn(el); }
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.actChange){ A[t.dataset.actChange]?.(t); return; }
+  if(t.dataset.ev!==undefined){ setEval(t.dataset.ev,'score',Number(t.value)); return; }
+  if(t.dataset.rb){ const [k,i,f]=t.dataset.rb.split('|'); const c=S.rubricDraft.rubric[k][+i];
+    if(f==='max'||f==='min'){ c[f]=t.value; normCrit(c); S.rubricDraft.dirty=true; render(); }
+    else if(f==='step'){ if(t.value==='custom'){ c.steps=scoresOf(c); c.step='custom'; } else { c.step=t.value; c.steps=null; } normCrit(c); S.rubricDraft.dirty=true; render(); }
+    return; }
+  if(t.dataset.rbs){ const [k,i,old]=t.dataset.rbs.split('|'); const c=S.rubricDraft.rubric[k][+i]; const nv=parseInt(t.value,10);
+    if(isNaN(nv)||nv<0||nv>100){ toast('점수는 0~100 사이 숫자로 적어 주세요.',true); render(); return; }
+    if(nv!==+old && c.steps.includes(nv)){ toast(`${nv}점 단계가 이미 있어요.`,true); render(); return; }
+    c.levels[nv]=c.levels[old]; if(nv!==+old) delete c.levels[old]; c.steps=c.steps.map(x=>x===+old?nv:x); normCrit(c); S.rubricDraft.dirty=true; render(); return; }
+  if(t.dataset.ff==='filterOn'){ S.rubricDraft.filterOn=t.checked; markRubricDirty(); return; }
+  if(t.dataset.sfCount!==undefined){ const n=+t.value; const sp=S.sessionForm.speakers; while(sp.length<n) sp.push({id:gid('p'),name:''}); sp.length=n; render(); return; }
+  if(t.dataset.pf==='myGroup'){ S.profileDraft.myGroup=t.value; S.profileDraft.dirty=true; return; }
+  if(t.dataset.rp==='inc'){ S.reportDraft.includeComments=t.checked; S.reportDraft.dirty=true; updateLive(); return; }
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.evr!==undefined){ const p=t.dataset.evr.split('|'); if(p[0]==='c') S.evalDraft.contentReason=t.value; else S.evalDraft.speakerReasons[p[1]]=t.value; setEval(null); return; }
+  if(t.dataset.rb){ const [k,i,f]=t.dataset.rb.split('|'); if(f==='name'){ S.rubricDraft.rubric[k][+i].name=t.value; markRubricDirty(); } return; }
+  if(t.dataset.rbl){ const [k,i,s]=t.dataset.rbl.split('|'); S.rubricDraft.rubric[k][+i].levels[s]=t.value; markRubricDirty(); return; }
+  if(t.dataset.ff==='banned'){ S.rubricDraft.bannedText=t.value; markRubricDirty(); return; }
+  if(t.dataset.roster!==undefined){ S.rosterDraft.text=t.value; return; }
+  if(t.dataset.sf){ S.sessionForm[t.dataset.sf]=t.value; return; }
+  if(t.dataset.sfSp!==undefined){ S.sessionForm.speakers[+t.dataset.sfSp].name=t.value; return; }
+  if(t.dataset.sfNo!==undefined){ S.sessionForm.speakers[+t.dataset.sfNo].number=t.value; return; }
+  if(t.dataset.pf){ S.profileDraft[t.dataset.pf]=t.value; S.profileDraft.dirty=true; return; }
+  if(t.dataset.rp){ const r=S.reportDraft; if(t.dataset.rp==='group') r.groupSummary=t.value; else { const id=t.dataset.rp.split('|')[1]; r.speakerSummaries[id]=t.value; } r.dirty=true; updateLive(); return; }
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.id==='newClassName') A.createClass(); if(e.key==='Enter'&&e.target.id==='renameInput') A.renameSave(); });
+function markRubricDirty(){ if(!S.rubricDraft.dirty){ S.rubricDraft.dirty=true; const sb=$('.savebar'); if(sb){ sb.querySelector('.grow').textContent='저장하지 않은 변경 사항이 있어요.'; sb.querySelector('[data-act=resetRubric]').disabled=false; } } }
+function setEval(path,field,val){
+  const d=S.evalDraft;
+  if(path){ const p=path.split('|');
+    let o; if(p[0]==='c'){ o=d.content[p[1]]=d.content[p[1]]||{}; } else { d.speaking[p[1]]=d.speaking[p[1]]||{}; o=d.speaking[p[1]][p[2]]=d.speaking[p[1]][p[2]]||{}; }
+    o[field]=val; }
+  const pg=evalProgress(); const tx=$('#evProgTxt'); if(tx) tx.textContent=`${pg.done} / ${pg.total} 항목 완료`; const b=$('#evProgBar'); if(b) b.style.width=(pg.total?pg.done/pg.total*100:0)+'%';
+  if(S.evalTried){ const er=$('#evErr'); if(er) er.textContent=pg.missing.length?`아직 덜 채운 항목: ${pg.missing.join(', ')} (근거는 ${REASON_MIN}자 이상)`:''; }
+}
+
+/* ---------- boot ---------- */
+function applyHash(){
+  const h=String((S.loc&&S.loc.parameter&&S.loc.parameter['class'])||'');
+  if(!h||!S.classes[h]) return false;
+  resetDrafts();
+  if(S.teacher&&!S.preview) S.view={name:'class',cid:h,tab:'sessions'};
+  else { S.view={name:'sclass',cid:h}; if(!S.preview) lsSet('pr_class',h); }
+  return true;
+}
+window.addEventListener('hashchange',()=>{ if(S.ready&&applyHash()) render(); });
+function mapSnap(snap){ const o={}; snap.docs.forEach(d=>{ const v=d.data(); if(v) o[d.id]={...v,id:v.id||d.id}; }); return o; }
+function sub(ref, set){ return ref.onSnapshot(s=>{ set(s); onData(); }, e=>{ console.warn(e); if(e&&e.code==='revoked'){ S.err='이 페이지에 대한 접근 권한이 바뀌었어요. 새로고침해 주세요.'; render(); } }); }
+function roleHTML(){
+  return `<main class="wrap narrow">
+    <section class="stack" style="text-align:center;gap:6px;padding-top:12px"><h1>누구신가요?</h1><p class="muted">알맞은 쪽을 눌러 시작해 주세요.</p></section>
+    <div class="roles">
+      <button class="rolecard r-stu" data-act="chooseStudent"><span class="ico" aria-hidden="true">🙋</span><strong>학생</strong><span class="muted small">친구들의 발표를 평가하고<br>피드백 리포트를 봐요</span></button>
+      <button class="rolecard r-tch" data-act="chooseTeacher"><span class="ico" aria-hidden="true">🧑‍🏫</span><strong>교사</strong><span class="muted small">평가 기준·대시보드·리포트를<br>관리해요 (비밀번호 필요)</span></button>
+    </div>
+  </main>`;
+}
+function loginHTML(){
+  return `<main class="wrap narrow"><section class="card stack login">
+    <span class="eyebrow">교사 로그인</span><h1>선생님 비밀번호를 입력해 주세요</h1>
+    ${S.passwordSet===false?`<div class="note">아직 비밀번호가 설정되지 않았어요. Render의 Environment 설정에서 TEACHER_PASSWORD를 추가해 주세요.</div>`:''}
+    <form id="loginForm" class="row wrapr" autocomplete="off"><input type="password" id="pw" placeholder="비밀번호" style="flex:1 1 200px" autocomplete="current-password"><button class="btn primary" type="submit">로그인</button></form>
+    <p class="muted small">학생은 선생님이 보낸 학생용 링크로 들어오면 돼요.</p>
+    <button class="btn ghost sm" data-act="backToRole" style="align-self:flex-start">← 처음 화면으로</button>
+  </section></main>`;
+}
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='loginForm') return; e.preventDefault();
+  const pw=$('#pw').value; if(!pw) return;
+  try{ const r=await apiCall('login',{password:pw}); AUTH.t=r.token; LS.set('pr_t',r.token); S.teacher=true; startApp(); }
+  catch(err){ toast(err.code==='wrong_password'?'비밀번호가 맞지 않아요.':err.code==='not_configured'?'Render에서 TEACHER_PASSWORD를 먼저 설정해 주세요.':'로그인하지 못했어요. 잠시 뒤 다시 시도해 주세요.',true); }
+});
+Object.assign(A,{
+  chooseStudent(){ LS.set('pr_role','student'); S.roleView=false; startApp(); },
+  chooseTeacher(){ S.roleView=false; S.loginView=true; render(); setTimeout(()=>$('#pw')&&$('#pw').focus(),0); },
+  backToRole(){ S.loginView=false; S.roleView=true; render(); },
+  toRoleScreen(){ LS.set('pr_role',null); if(S.db) S.db.stop(); S.db=null; S.ready=false; S.myDoc=null;
+    S.classes={};S.sessions={};S.pubReports={}; resetDrafts(); S.view={name:'home'}; S.roleView=true; render(); },
+  teacherLogout(){ AUTH.t=null; LS.set('pr_t',null); if(S.db) S.db.stop(); S.db=null; S.teacher=false; S.preview=false; S.ready=false;
+    S.classes={};S.sessions={};S.pubReports={};S.drafts={};S.mods={};S.evals={}; resetDrafts(); S.view={name:'home'}; S.roleView=true; render(); },
+  copyTeacher(){ copyText(teacherLink(),'#teacherLink','교사용 주소를 복사했어요.'); },
+  copyLink(el){ copyText(linkFor(el.dataset.id),'#shareLink','학생용 링크를 복사했어요.'); },
+  sSwitchDo(){ S.confirm=null; const d=newDeviceId(); LS.set('pr_d',d); AUTH.d=d; S.uid=d; S.myDoc=null; S.profileDraft=null; S.evalDraft=null;
+    if(S.myUnsub) S.myUnsub(); S.myUnsub=sub(S.db.doc('evals/'+S.uid), x=>{ S.myDoc=x.exists?clone(x.data()):null; });
+    S.view={name:'sclass',cid:S.view.cid}; render(); toast('새 학생으로 시작해요. 번호와 이름을 적어 주세요.'); }
+});
+function copyText(text, inputSel, ok){
+  const fallback=()=>{ const i=$(inputSel); if(i&&i.value===text){ i.focus(); i.select(); toast('주소를 선택했어요. Ctrl+C(⌘+C)로 복사해 주세요.'); } else { toast('복사하지 못했어요. 반을 열어 링크 칸에서 직접 복사해 주세요.',true); } };
+  try{ const p=navigator.clipboard&&navigator.clipboard.writeText(text); if(p) p.then(()=>toast(ok),fallback); else fallback(); }catch(e){ fallback(); }
+}
+function startApp(){
+  S.loginView=false; S.ready=false; S.canWrite=true;
+  if(!S.teacher){ AUTH.d=deviceId(); S.uid=AUTH.d; }
+  const db=makeDB(); S.db=db;
+  let pending=3; const done=()=>{ if(--pending<=0&&!S.ready){ S.ready=true; applyHash(); render(); } };
+  const first={a:1,b:1,c:1};
+  sub(db.collection('cfg/root/classes'), x=>{ S.classes=mapSnap(x); if(first.a){first.a=0;done();} });
+  sub(db.collection('cfg/root/sessions'), x=>{ S.sessions=mapSnap(x); if(first.b){first.b=0;done();} });
+  sub(db.collection('cfg/root/reports'), x=>{ S.pubReports=mapSnap(x); if(first.c){first.c=0;done();} });
+  if(S.teacher){
+    sub(db.collection('drafts/root/reports'), x=>{ S.drafts=mapSnap(x); });
+    sub(db.collection('drafts/root/mod'), x=>{ S.mods=mapSnap(x); });
+    sub(db.collection('evals'), x=>{ S.evals=mapSnap(x); });
+  } else {
+    S.myUnsub=sub(db.doc('evals/'+S.uid), x=>{ S.myDoc=x.exists?clone(x.data()):null; });
+  }
+  render();
+  setTimeout(()=>{ if(!S.ready&&!S.loginView){ S.ready=true; applyHash(); render(); } }, 15000);
+}
+(async()=>{
+  S.loc={parameter:Object.fromEntries(new URLSearchParams(location.search))};
+  let info; try{ info=await apiCall('info',{}); }catch(e){ S.err='서버에 연결하지 못했어요. 무료 서버가 잠들어 있으면 깨어나는 데 1분쯤 걸려요. 잠시 뒤 새로고침해 주세요.'; render(); return; }
+  SHARE_URL=location.origin+'/'; S.storeKind=info.store; S.passwordSet=info.passwordSet;
+  if(!info.teacher&&AUTH.t){ AUTH.t=null; LS.set('pr_t',null); }
+  S.teacher=!!info.teacher;
+  if(!S.teacher){
+    const prm=(S.loc&&S.loc.parameter)||{};
+    if(prm.mode==='teacher'){ S.loginView=true; render(); return; }
+    if(!prm['class'] && LS.get('pr_role')!=='student'){ S.roleView=true; render(); return; }
+  }
+  startApp();
+})();
+</script>
+
+</body>
+</html>

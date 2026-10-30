@@ -195,6 +195,12 @@ table.stu tbody tr:not(.grp):hover td{background:var(--accent-soft)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
 @media (max-width:900px){.two{grid-template-columns:1fr}}
 .two > *{min-width:0}
+/* per-rater tab */
+table.rat td.cmtc{white-space:normal;min-width:220px;max-width:360px;font-size:13px;overflow-wrap:anywhere}
+table.rat td.lo{color:var(--pen);font-weight:700}
+table.rat td.hi{color:var(--sky);font-weight:700}
+table.rat tfoot td{background:var(--surface-2);font-weight:600;border-top:2px solid var(--line)}
+table.rat tr.flagrow td{background:var(--pen-soft)}
 
 /* student eval */
 .crit-card{display:flex;flex-direction:column;gap:12px}
@@ -564,11 +570,12 @@ function tHome(){
 }
 function tClass(){
   const v=S.view, cls=S.classes[v.cid];
-  const tabs=[['sessions','발표 세션'],['rubric','평가 기준'],['dash','실시간 대시보드'],['students','학생별 점수'],['part','참여 현황'],['report','피드백 리포트']];
+  const tabs=[['sessions','발표 세션'],['rubric','평가 기준'],['dash','실시간 대시보드'],['students','학생별 점수'],['raters','평가자별 점수'],['part','참여 현황'],['report','피드백 리포트']];
   let body='';
   if(v.tab==='rubric') body=tRubric(cls);
   else if(v.tab==='dash') body=tDash(cls);
   else if(v.tab==='students') body=tStudents(cls);
+  else if(v.tab==='raters') body=tRaters(cls);
   else if(v.tab==='part') body=tPart(cls);
   else if(v.tab==='report') body=tReport(cls);
   else body=tSessions(cls);
@@ -820,6 +827,58 @@ function tStudents(cls){
       </table>
     </div>
     <p class="muted small">점수는 소수 첫째 자리까지 반올림한 평균이에요. 아직 평가가 없으면 '–'로 표시돼요.</p>
+  </div>`;
+}
+
+/* per-rater tab: how each student scored a presentation */
+function tRaters(cls){
+  const ss=sessionsOf(cls.id);
+  if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
+  let sid=S.view.sid; if(!sid||!S.sessions[sid]||S.sessions[sid].classId!==cls.id){ sid=(ss.find(s=>s.status==='open')||ss.find(s=>submitCount(s.id,cls.id))||ss[0]).id; S.view.sid=sid; }
+  const st=sessionStats(sid); const R=st.R;
+  const [lab,pc]=STATUS[st.sess.status||'ready'];
+  const sc=v=>v&&typeof v.score==='number'?v.score:null;
+  const sum=a=>{ const b=a.filter(x=>x!=null); return b.length?b.reduce((x,y)=>x+y,0):null; };
+  const spMax=R.speaking.reduce((a,c)=>a+c.max,0);
+  const totalMax=st.contentMax+spMax*st.speaking.length;
+  const rows=st.entries.map(e=>{ const it=e.items[sid]||{};
+    const c=R.content.map(cr=>sc(it.content&&it.content[cr.id]));
+    const sps=st.speaking.map(x=>{ const o=(it.speaking&&it.speaking[x.sp.id])||{}; const v=R.speaking.map(cr=>sc(o[cr.id])); return {v,sub:sum(v)}; });
+    const cSub=sum(c); const total=sum([cSub,...sps.map(x=>x.sub)]);
+    return {e,c,cSub,sps,total,text:(it.contentReason||'').trim(),at:it.at}; });
+  rows.sort((a,b)=>((+nkey(a.e.number))||999)-((+nkey(b.e.number))||999) || String(a.e.name).localeCompare(String(b.e.name),'ko'));
+  const avgTotal=avg(rows.map(r=>r.total).filter(x=>x!=null));
+  const mark=(v,mean,max)=>{ if(v==null||mean==null) return ''; const d=v-mean; return d<=-max*0.3?'lo':d>=max*0.3?'hi':''; };
+  const td=(v,cls)=>`<td class="num ${cls||''}">${v==null?'–':v}</td>`;
+  const body=rows.map(r=>{
+    const d=r.total!=null&&avgTotal!=null? r.total-avgTotal : null;
+    const outlier=d!=null&&Math.abs(d)>=totalMax*0.2;
+    return `<tr class="${outlier&&d<0?'flagrow':''}"><td class="mono">${esc(r.e.number||'–')}</td><td><strong>${esc(r.e.name||'이름 없음')}</strong></td>
+      ${r.c.map((v,i)=>td(v,mark(v,st.content[i].avg,R.content[i].max))).join('')}<td class="num sub">${r.cSub??'–'}</td>
+      ${r.sps.map((x,si)=>x.v.map((v,i)=>td(v,mark(v,st.speaking[si].crits[i].avg,R.speaking[i].max))).join('')+`<td class="num sub">${x.sub??'–'}</td>`).join('')}
+      <td class="num"><strong>${r.total??'–'}</strong></td>
+      <td class="num ${d==null?'':d<=-totalMax*0.2?'lo':d>=totalMax*0.2?'hi':''}">${d==null?'–':(d>0?'+':'')+f1(d)}</td>
+      <td class="cmtc">${r.text?esc(r.text):'<span class="muted">–</span>'}</td></tr>`; }).join('');
+  const foot=rows.length?`<tfoot><tr><td></td><td>평균</td>${st.content.map(x=>`<td class="num">${f1(x.avg)}</td>`).join('')}<td class="num sub">${f1(st.contentTotal)}</td>
+      ${st.speaking.map(x=>x.crits.map(c=>`<td class="num">${f1(c.avg)}</td>`).join('')+`<td class="num sub">${f1(x.total)}</td>`).join('')}
+      <td class="num">${f1(avgTotal)}</td><td></td><td></td></tr></tfoot>`:'';
+  return `<div class="stack">
+    <div class="chips">${ss.map(s=>`<button class="chip" aria-pressed="${s.id===sid}" data-act="pickSession" data-id="${esc(s.id)}">${esc(s.title)}<span class="n">${submitCount(s.id,cls.id)}</span></button>`).join('')}</div>
+    <div class="sec-head"><div class="stack" style="gap:2px"><div class="row wrapr"><h2>${esc(st.sess.title)}</h2><span class="pill ${pc}">${lab}</span></div>
+      <p class="muted small">이 발표를 평가한 학생 한 명 한 명이 준 점수예요. 평균보다 많이 낮은 점수는 <strong style="color:var(--pen)">빨간색</strong>, 많이 높은 점수는 <strong style="color:var(--sky)">파란색</strong>으로 보여요.</p></div></div>
+    ${rows.length?`<div class="card tblwrap" style="padding:0">
+      <table class="data stu rat">
+        <thead>
+          <tr class="band"><th colspan="2"></th><th colspan="${R.content.length+1}" class="bandc">내용·구성 (모둠)</th>${st.speaking.map(x=>`<th colspan="${R.speaking.length+1}" class="bands">발표 · ${esc(x.sp.name)}</th>`).join('')}<th colspan="3"></th></tr>
+          <tr><th>번호</th><th>평가한 학생</th>
+            ${R.content.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${st.contentMax}</span></th>
+            ${st.speaking.map(()=>R.speaking.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')+`<th class="num sub">소계 <span class="mono">/${spMax}</span></th>`).join('')}
+            <th class="num">준 점수 합계 <span class="mono">/${totalMax}</span></th><th class="num">평균과 차이</th><th>종합 의견</th></tr>
+        </thead>
+        <tbody>${body}</tbody>${foot}
+      </table></div>
+    <p class="muted small">합계가 평균보다 크게 낮은 학생(배점의 20% 이상 차이)은 줄 전체가 붉게 표시돼요. 이 화면은 선생님만 볼 수 있어요.</p>`
+    :`<div class="empty">아직 이 발표를 평가한 학생이 없어요.</div>`}
   </div>`;
 }
 

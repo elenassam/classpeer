@@ -195,6 +195,13 @@ table.stu tbody tr:not(.grp):hover td{background:var(--accent-soft)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
 @media (max-width:900px){.two{grid-template-columns:1fr}}
 .two > *{min-width:0}
+/* teacher eval + final score */
+.tev-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.tev-cols > *{min-width:0}
+@media (max-width:900px){.tev-cols{grid-template-columns:1fr}}
+table.stu .bandf{text-align:center;border-bottom:2px solid var(--fg)!important;color:var(--fg)}
+table.stu td.fin,table.stu th.fin{background:var(--accent-soft);position:sticky;right:0;z-index:1;box-shadow:-6px 0 8px -6px rgba(0,0,0,.18)}
+table.stu td.fin strong{font-size:16px}
 /* per-rater tab */
 table.rat td.cmtc{white-space:normal;min-width:220px;max-width:360px;font-size:13px;overflow-wrap:anywhere}
 table.rat td.lo{color:var(--pen);font-weight:700}
@@ -315,7 +322,7 @@ function makeDB(){
 }
 const S = {
   db:null, user:null, uid:null, teacher:false, canWrite:null, ready:false, err:null,
-  classes:{}, sessions:{}, pubReports:{}, drafts:{}, mods:{}, evals:{}, myDoc:null,
+  classes:{}, sessions:{}, pubReports:{}, drafts:{}, mods:{}, evals:{}, tevals:{}, tevalDraft:null, myDoc:null,
   view:{name:'home'}, preview:false, previewDoc:{byClass:{}},
   rubricDraft:null, sessionForm:null, evalDraft:null, profileDraft:null, reportDraft:null,
   confirm:null, renaming:false, aiBusy:false, aiCtl:null, evalTried:false
@@ -491,6 +498,7 @@ function isEditing(){
   if(v.name==='eval') return true;
   if(v.name==='class' && v.tab==='rubric') return true;
   if(v.name==='class' && v.tab==='report') return true;
+  if(v.name==='class' && v.tab==='teval' && S.tevalDraft && S.tevalDraft.dirty) return true;
   if(v.name==='class' && v.tab==='sessions' && S.sessionForm) return true;
   if(v.name==='class' && v.tab==='part' && S.rosterDraft) return true;
   if(S.profileDraft && S.profileDraft.dirty) return true;
@@ -570,12 +578,13 @@ function tHome(){
 }
 function tClass(){
   const v=S.view, cls=S.classes[v.cid];
-  const tabs=[['sessions','발표 세션'],['rubric','평가 기준'],['dash','실시간 대시보드'],['students','학생별 점수'],['raters','평가자별 점수'],['part','참여 현황'],['report','피드백 리포트']];
+  const tabs=[['sessions','발표 세션'],['rubric','평가 기준'],['dash','실시간 대시보드'],['teval','교사 평가'],['students','학생별 점수'],['raters','평가자별 점수'],['part','참여 현황'],['report','피드백 리포트']];
   let body='';
   if(v.tab==='rubric') body=tRubric(cls);
   else if(v.tab==='dash') body=tDash(cls);
   else if(v.tab==='students') body=tStudents(cls);
   else if(v.tab==='raters') body=tRaters(cls);
+  else if(v.tab==='teval') body=tTeval(cls);
   else if(v.tab==='part') body=tPart(cls);
   else if(v.tab==='report') body=tReport(cls);
   else body=tSessions(cls);
@@ -781,6 +790,65 @@ function tPart(cls){
   </div>`;
 }
 
+/* teacher's own scores: drafts/root/teval/<sid> = {content:{critId:{score}}, speaking:{spId:{critId:{score}}}} */
+function teacherScores(sid){
+  const sess=S.sessions[sid]; if(!sess) return null; const cls=S.classes[sess.classId]; if(!cls) return null;
+  const t=S.tevals[sid]; if(!t) return null; const R=cls.rubric;
+  const g=o=>o&&typeof o.score==='number'?o.score:null;
+  const cs=R.content.map(c=>g(t.content&&t.content[c.id]));
+  const content=cs.every(x=>x!=null)? cs.reduce((a,b)=>a+b,0) : null;
+  const speakers={};
+  for(const sp of (sess.speakers||[])){ const v=R.speaking.map(c=>g(t.speaking&&t.speaking[sp.id]&&t.speaking[sp.id][c.id])); speakers[sp.id]=v.every(x=>x!=null)? v.reduce((a,b)=>a+b,0) : null; }
+  return {content, speakers};
+}
+function setTeval(path,val){
+  const d=S.tevalDraft; if(!d) return; const p=path.split('|');
+  if(p[0]==='c') d.content[p[1]]={score:val};
+  else { d.speaking[p[1]]=d.speaking[p[1]]||{}; d.speaking[p[1]][p[2]]={score:val}; }
+  d.dirty=true; updateTevalBar();
+}
+function tevalProgress(){
+  const d=S.tevalDraft, sess=S.sessions[d.sid], R=S.classes[sess.classId].rubric; let total=0, done=0;
+  for(const c of R.content){ total++; if(d.content[c.id]&&typeof d.content[c.id].score==='number') done++; }
+  for(const sp of (sess.speakers||[]).filter(x=>!x.absent)) for(const c of R.speaking){ total++; const v=d.speaking[sp.id]&&d.speaking[sp.id][c.id]; if(v&&typeof v.score==='number') done++; }
+  return {total, done};
+}
+function updateTevalBar(){
+  const pg=tevalProgress(); const tx=$('#tevProgTxt'); if(tx) tx.textContent=`${pg.done} / ${pg.total} 항목 · ${S.tevalDraft.dirty?'저장하지 않은 변경 사항이 있어요':'저장됨'}`;
+  const b=$('#tevProgBar'); if(b) b.style.width=(pg.total?pg.done/pg.total*100:0)+'%';
+  const r=$('[data-act=tevReset]'); if(r) r.disabled=!S.tevalDraft.dirty;
+}
+function tTeval(cls){
+  const ss=sessionsOf(cls.id);
+  if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
+  let sid=S.view.sid; if(!sid||!S.sessions[sid]||S.sessions[sid].classId!==cls.id){ sid=(ss.find(s=>s.status==='open')||ss[0]).id; S.view.sid=sid; }
+  const sess=S.sessions[sid], R=cls.rubric;
+  if(!S.tevalDraft||S.tevalDraft.sid!==sid){ const ex=S.tevals[sid]; S.tevalDraft={sid, content:clone(ex&&ex.content||{}), speaking:clone(ex&&ex.speaking||{}), dirty:false}; }
+  const d=S.tevalDraft; const pg=tevalProgress();
+  const done=s=>{ const t=teacherScores(s.id); if(!t) return false; return t.content!=null && (s.speakers||[]).filter(x=>!x.absent).every(x=>t.speakers[x.id]!=null); };
+  const critHTML=(c, v, nameKey, path)=>`<div class="card crit-card">
+    <div class="ch"><strong>${esc(c.name)}</strong><span class="mono muted small">${c.max}점</span></div>
+    <div class="lvls" role="radiogroup" aria-label="${esc(c.name)}">${scoresOf(c).map(s=>`<label class="lvl"><input type="radio" name="${nameKey}" value="${s}" data-tev="${path}" ${v&&v.score===s?'checked':''}><span class="score-badge">${s}</span><span class="d">${esc(c.levels[s]||'')}</span></label>`).join('')}</div>
+  </div>`;
+  return `<div class="stack">
+    <div class="chips">${ss.map(s=>`<button class="chip" aria-pressed="${s.id===sid}" data-act="tevPick" data-id="${esc(s.id)}">${esc(s.title)}${done(s)?'<span class="n">✓</span>':''}</button>`).join('')}</div>
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>${esc(sess.title)} <span class="muted small">교사 평가</span></h2>
+      <p class="muted small">학생들과 같은 평가 기준으로 선생님이 직접 점수를 매겨요. '학생별 점수' 탭의 최종 점수는 <strong>교사 점수 60% + 학생 평균 40%</strong>로 계산하고, 1의 자리까지 반올림해요. 이 화면은 학생에게 보이지 않아요.</p></div></div>
+    <div class="tev-cols">
+      <section class="stack"><h3 class="h3">내용·구성 <span class="muted small">모둠 전체</span></h3>
+        ${R.content.map(c=>critHTML(c, d.content[c.id], `tc-${c.id}`, `c|${c.id}`)).join('')}</section>
+      <section class="stack"><h3 class="h3">발표 <span class="muted small">발표자마다 따로</span></h3>
+        ${(sess.speakers||[]).filter(x=>!x.absent).map(sp=>`<div class="spkblock"><div class="spkname"><span class="av">${esc((sp.name||'?').slice(0,1))}</span>${esc(sp.name)}</div>
+          ${R.speaking.map(c=>critHTML(c, d.speaking[sp.id]&&d.speaking[sp.id][c.id], `ts-${sp.id}-${c.id}`, `s|${sp.id}|${c.id}`)).join('')}</div>`).join('')||'<p class="muted small">발표자가 없어요.</p>'}</section>
+    </div>
+    <div class="submitbar">
+      <div class="prog"><span id="tevProgTxt">${pg.done} / ${pg.total} 항목 · ${d.dirty?'저장하지 않은 변경 사항이 있어요':(S.tevals[sid]?'저장됨':'아직 저장 안 함')}</span><div class="track"><div class="fill" id="tevProgBar" style="width:${pg.total?pg.done/pg.total*100:0}%"></div></div></div>
+      <button class="btn ghost" data-act="tevReset" ${d.dirty?'':'disabled'}>되돌리기</button>
+      <button class="btn primary" data-act="tevSave">교사 점수 저장</button>
+    </div>
+  </div>`;
+}
+
 /* per-student scores tab */
 function tStudents(cls){
   const ss=sessionsOf(cls.id);
@@ -791,42 +859,47 @@ function tStudents(cls){
   ss.forEach((sess,gi)=>{ const st=sessionStats(sess.id); if(!st) return;
     const act={}; st.speaking.forEach(x=>act[x.sp.id]=x);
     (sess.speakers||[]).forEach((p,si)=>{ const sp=act[p.id];
-      if(sp) rows.push({gi,si,sess,st,sp,grand: st.contentTotal!=null&&sp.total!=null? st.contentTotal+sp.total : null});
+      const ts=teacherScores(sess.id); const tGrand=ts&&ts.content!=null&&ts.speakers[p.id]!=null? ts.content+ts.speakers[p.id] : null;
+      if(sp){ const grand=st.contentTotal!=null&&sp.total!=null? st.contentTotal+sp.total : null;
+        rows.push({gi,si,sess,st,sp,grand,tGrand,final: grand!=null&&tGrand!=null? Math.round(tGrand*0.6+grand*0.4) : null}); }
       else rows.push({gi,si,sess,st,sp:{sp:p},absent:true}); }); });
   if(sort==='number') rows.sort((a,b)=>{ const na=parseInt(a.sp.sp.number,10), nb=parseInt(b.sp.sp.number,10);
     const ax=isNaN(na)?1e9:na, bx=isNaN(nb)?1e9:nb; return ax-bx || String(a.sp.sp.name).localeCompare(String(b.sp.sp.name),'ko'); });
   const cell=v=>`<td class="num">${f1(v)}</td>`;
-  const colCount=4+R.content.length+R.speaking.length+3;
+  const colCount=4+R.content.length+R.speaking.length+5;
   let body=''; let lastG=-1;
   for(const r of rows){
     if(sort==='group' && r.gi!==lastG){ lastG=r.gi; const [lab,pc]=STATUS[r.sess.status||'ready'];
       body+=`<tr class="grp"><td colspan="${colCount}"><strong>${esc(r.sess.title)}</strong> <span class="pill ${pc}">${lab}</span> <span class="muted small mono">평가 ${r.st.n}명</span></td></tr>`; }
     const sp=r.sp;
-    if(r.absent){ body+=`<tr class="absent"><td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong> <span class="tag flag">불참</span></td>${sort==='number'?`<td>${esc(r.sess.title)}</td>`:''}<td colspan="${R.content.length+R.speaking.length+4}" class="small">발표에 참여하지 않아 평가하지 않았어요.</td></tr>`; continue; }
+    if(r.absent){ body+=`<tr class="absent"><td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong> <span class="tag flag">불참</span></td>${sort==='number'?`<td>${esc(r.sess.title)}</td>`:''}<td colspan="${R.content.length+R.speaking.length+6}" class="small">발표에 참여하지 않아 평가하지 않았어요.</td></tr>`; continue; }
     body+=`<tr>
       <td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong></td>
       ${sort==='number'?`<td class="muted">${esc(r.sess.title)}</td>`:''}
       ${r.st.content.map(x=>cell(x.avg)).join('')}<td class="num sub">${f1(r.st.contentTotal)}</td>
       ${sp.crits.map(x=>cell(x.avg)).join('')}<td class="num sub">${f1(sp.total)}</td>
-      <td class="num"><div class="gt"><strong>${f1(r.grand)}</strong><span class="track"><span class="fill" style="width:${r.grand==null?0:r.grand/(cMax+sMax)*100}%"></span></span></div></td>
-      <td class="num muted">${r.st.n}</td></tr>`;
+      <td class="num muted">${r.st.n}</td>
+      <td class="num">${f1(r.grand)}</td>
+      <td class="num">${r.tGrand==null?'<span class="muted" title="교사 평가 탭에서 점수를 넣어 주세요">–</span>':r.tGrand}</td>
+      <td class="num fin"><div class="gt"><strong>${r.final??'–'}</strong><span class="track"><span class="fill" style="width:${r.final==null?0:r.final/(cMax+sMax)*100}%"></span></span></div></td>
+</tr>`;
   }
   return `<div class="stack">
-    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">발표한 학생마다 받은 평균 점수예요. 내용·구성은 모둠 점수라 같은 모둠 학생에게 똑같이 들어가요.</p></div>
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">항목별 점수는 학생들이 준 평균이에요. 내용·구성은 모둠 점수라 같은 모둠 학생에게 똑같이 들어가요. <strong>최종 점수 = 교사 점수×0.6 + 학생 평균×0.4</strong> (1의 자리까지 반올림)</p></div>
       <div class="chips" role="group" aria-label="정렬"><button class="chip" aria-pressed="${sort==='group'}" data-act="sortStudents" data-sort="group">모둠순</button><button class="chip" aria-pressed="${sort==='number'}" data-act="sortStudents" data-sort="number">번호순</button></div></div>
     <div class="card tblwrap" style="padding:0">
       <table class="data stu">
         <thead>
-          <tr class="band"><th colspan="${sort==='number'?3:2}"></th><th colspan="${R.content.length+1}" class="bandc">내용·구성 (모둠)</th><th colspan="${R.speaking.length+1}" class="bands">발표 (개인)</th><th colspan="2"></th></tr>
+          <tr class="band"><th colspan="${sort==='number'?3:2}"></th><th colspan="${R.content.length+1}" class="bandc">내용·구성 (모둠)</th><th colspan="${R.speaking.length+1}" class="bands">발표 (개인)</th><th></th><th colspan="3" class="bandf">총점 /${cMax+sMax}</th></tr>
           <tr><th>번호</th><th>이름</th>${sort==='number'?'<th>모둠</th>':''}
             ${R.content.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${cMax}</span></th>
             ${R.speaking.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${sMax}</span></th>
-            <th class="num">총점 <span class="mono">/${cMax+sMax}</span></th><th class="num">평가 수</th></tr>
+            <th class="num">평가 수</th><th class="num">학생 평균</th><th class="num">교사</th><th class="num fin">최종 <span class="muted">(6:4)</span></th></tr>
         </thead>
         <tbody>${body||`<tr><td colspan="${colCount}" class="muted">발표자가 없어요.</td></tr>`}</tbody>
       </table>
     </div>
-    <p class="muted small">점수는 소수 첫째 자리까지 반올림한 평균이에요. 아직 평가가 없으면 '–'로 표시돼요.</p>
+    <p class="muted small">학생 평균은 소수 첫째 자리까지 보여 줘요. 최종 점수는 교사 점수와 학생 평균이 모두 있어야 계산돼요. 비어 있으면 '–'로 표시돼요.</p>
   </div>`;
 }
 
@@ -1073,7 +1146,7 @@ const A = {
   async delClass(el){
     const cid=el.dataset.id; S.confirm=null;
     const ok=await run(async()=>{
-      for(const s of sessionsOf(cid)){ await S.db.doc('cfg/root/sessions/'+s.id).delete(); await S.db.doc('drafts/root/reports/'+s.id).delete(); await S.db.doc('cfg/root/reports/'+s.id).delete(); }
+      for(const s of sessionsOf(cid)){ await S.db.doc('cfg/root/sessions/'+s.id).delete(); await S.db.doc('drafts/root/reports/'+s.id).delete(); await S.db.doc('cfg/root/reports/'+s.id).delete(); if(S.tevals[s.id]) await S.db.doc('drafts/root/teval/'+s.id).delete(); }
       await S.db.doc('drafts/root/mod/'+cid).delete();
       for(const [uid,d] of Object.entries(S.evals)){ if(d.byClass&&d.byClass[cid]){ const nd=clone(d); delete nd.byClass[cid]; await S.db.doc('evals/'+uid).set(nd); } }
       await S.db.doc('cfg/root/classes/'+cid).delete();
@@ -1081,7 +1154,7 @@ const A = {
     if(ok && S.view.cid===cid) S.view={name:'home'};
     render();
   },
-  tab(el){ S.view.tab=el.dataset.tab; S.sessionForm=null; S.rosterDraft=null; S.confirm=null; render(); },
+  tab(el){ S.view.tab=el.dataset.tab; S.tevalDraft=null; S.sessionForm=null; S.rosterDraft=null; S.confirm=null; render(); },
   renameStart(){ S.renaming=true; render(); $('#renameInput')?.focus(); },
   renameCancel(){ S.renaming=false; render(); },
   async renameSave(){ const n=$('#renameInput').value.trim(); if(!n) return toast('반 이름을 입력해 주세요.',true); const cid=S.view.cid;
@@ -1107,7 +1180,7 @@ const A = {
     const a=ss[i], b=ss[j]; let oa=a.order??0, ob=b.order??0; if(oa===ob) ob=oa+1;
     await run(async()=>{ await S.db.doc('cfg/root/sessions/'+a.id).update({order:ob}); await S.db.doc('cfg/root/sessions/'+b.id).update({order:oa}); }); },
   async delSession(el){ const id=el.dataset.id; S.confirm=null;
-    await run(async()=>{ await S.db.doc('cfg/root/sessions/'+id).delete(); await S.db.doc('drafts/root/reports/'+id).delete(); await S.db.doc('cfg/root/reports/'+id).delete(); },'발표를 삭제했어요.'); render(); },
+    await run(async()=>{ await S.db.doc('cfg/root/sessions/'+id).delete(); await S.db.doc('drafts/root/reports/'+id).delete(); await S.db.doc('cfg/root/reports/'+id).delete(); if(S.tevals[id]) await S.db.doc('drafts/root/teval/'+id).delete(); },'발표를 삭제했어요.'); render(); },
   goDash(el){ S.view.tab='dash'; S.view.sid=el.dataset.id; render(); },
   goReport(el){ S.view.tab='report'; S.view.sid=el.dataset.id; S.reportDraft=null; render(); },
   pickSession(el){ S.view.sid=el.dataset.id; render(); },
@@ -1225,10 +1298,17 @@ ${JSON.stringify(data)}`;
     const ok=await saveMy(doc=>{ doc.byClass=doc.byClass||{}; const cur=doc.byClass[cid]||{}; cur.items=cur.items||{}; cur.items[sid]={content:d.content,speaking:d.speaking,contentReason:d.contentReason.trim(),speakerReasons:d.speakerReasons,at:nowISO()}; doc.byClass[cid]=cur; }, S.preview?'미리보기라 저장되지 않았어요.':'제출했어요! 마감 전까지는 고칠 수 있어요.');
     if(ok){ S.view={name:'sclass',cid}; S.evalDraft=null; render(); window.scrollTo(0,0); }
   },
+  tevPick(el){ if(S.tevalDraft&&S.tevalDraft.dirty&&!confirm('저장하지 않은 교사 점수가 있어요. 다른 발표로 넘어갈까요?')) return; S.view.sid=el.dataset.id; S.tevalDraft=null; render(); },
+  async tevSave(){
+    const d=S.tevalDraft; if(!d) return; const sess=S.sessions[d.sid]; if(!sess) return;
+    const doc={sid:d.sid,classId:sess.classId,content:clone(d.content),speaking:clone(d.speaking),updatedAt:nowISO()};
+    if(await run(()=>S.db.doc('drafts/root/teval/'+d.sid).set(doc),'교사 점수를 저장했어요.')){ S.tevals[d.sid]=doc; d.dirty=false; render(); }
+  },
+  tevReset(){ S.tevalDraft=null; render(); },
   sOpenReport(el){ S.view={name:'report',sid:el.dataset.id,cid:S.view.cid}; render(); window.scrollTo(0,0); },
   sBack(){ S.view={name:'sclass',cid:S.sessions[S.view.sid]?.classId||S.view.cid}; render(); }
 };
-function resetDrafts(){ S.rosterDraft=null; S.rubricDraft=null; S.sessionForm=null; S.evalDraft=null; S.profileDraft=null; S.reportDraft=null; S.confirm=null; S.renaming=false; }
+function resetDrafts(){ S.tevalDraft=null; S.rosterDraft=null; S.rubricDraft=null; S.sessionForm=null; S.evalDraft=null; S.profileDraft=null; S.reportDraft=null; S.confirm=null; S.renaming=false; }
 async function removeItems(cid, sid, onlyUid){
   const r=await apiCall('resetItems',{cid,sid,uids:onlyUid?String(onlyUid).split(','):null});
   if(S.db) S.db.kick(true);
@@ -1257,6 +1337,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.actChange){ A[t.dataset.actChange]?.(t); return; }
   if(t.dataset.ev!==undefined){ setEval(t.dataset.ev,'score',Number(t.value)); return; }
+  if(t.dataset.tev!==undefined){ setTeval(t.dataset.tev, Number(t.value)); return; }
   if(t.dataset.rb){ const [k,i,f]=t.dataset.rb.split('|'); const c=S.rubricDraft.rubric[k][+i];
     if(f==='max'||f==='min'){ c[f]=t.value; normCrit(c); S.rubricDraft.dirty=true; render(); }
     else if(f==='step'){ if(t.value==='custom'){ c.steps=scoresOf(c); c.step='custom'; } else { c.step=t.value; c.steps=null; } normCrit(c); S.rubricDraft.dirty=true; render(); }
@@ -1360,6 +1441,7 @@ function startApp(){
   if(S.teacher){
     sub(db.collection('drafts/root/reports'), x=>{ S.drafts=mapSnap(x); });
     sub(db.collection('drafts/root/mod'), x=>{ S.mods=mapSnap(x); });
+    sub(db.collection('drafts/root/teval'), x=>{ S.tevals=mapSnap(x); });
     sub(db.collection('evals'), x=>{ S.evals=mapSnap(x); });
   } else {
     S.myUnsub=sub(db.doc('evals/'+S.uid), x=>{ S.myDoc=x.exists?clone(x.data()):null; });

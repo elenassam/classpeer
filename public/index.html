@@ -203,6 +203,7 @@ table.stu .bandf{text-align:center;border-bottom:2px solid var(--fg)!important;c
 table.stu td.fin,table.stu th.fin{background:var(--accent-soft);position:sticky;right:0;z-index:1;box-shadow:-6px 0 8px -6px rgba(0,0,0,.18)}
 table.stu td.fin strong{font-size:16px}
 .pend{color:var(--muted);font-style:italic}
+table.stu td.zero{color:var(--pen)}
 /* per-rater tab */
 table.rat td.cmtc{white-space:normal;min-width:220px;max-width:360px;font-size:13px;overflow-wrap:anywhere}
 table.rat td.lo{color:var(--pen);font-weight:700}
@@ -866,7 +867,9 @@ function tStudents(cls){
       const ts=teacherScores(sess.id); const tGrand=ts&&ts.content!=null&&ts.speakers[p.id]!=null? ts.content+ts.speakers[p.id] : null;
       if(sp){ const grand=st.contentTotal!=null&&sp.total!=null? st.contentTotal+sp.total : null;
         rows.push({gi,si,sess,st,sp,grand,tGrand,tb:ts&&ts.by,final: grand!=null&&tGrand!=null? Math.round(tGrand*0.6+grand*0.4) : null}); }
-      else rows.push({gi,si,sess,st,sp:{sp:p},absent:true}); }); });
+      else { /* absent: speaking counts as 0, only the group's content score counts */
+        const grand=st.contentTotal; const tG=ts&&ts.content!=null? ts.content : null;
+        rows.push({gi,si,sess,st,sp:{sp:p},absent:true,grand,tGrand:tG,tb:ts&&ts.by,final: grand!=null&&tG!=null? Math.round(tG*0.6+grand*0.4) : null}); } }); });
   if(sort==='number') rows.sort((a,b)=>{ const na=parseInt(a.sp.sp.number,10), nb=parseInt(b.sp.sp.number,10);
     const ax=isNaN(na)?1e9:na, bx=isNaN(nb)?1e9:nb; return ax-bx || String(a.sp.sp.name).localeCompare(String(b.sp.sp.name),'ko'); });
   /* each criterion: teacher 60% + student average 40%; if the teacher hasn't scored it yet, show the student average greyed out */
@@ -879,12 +882,13 @@ function tStudents(cls){
     if(sort==='group' && r.gi!==lastG){ lastG=r.gi; const [lab,pc]=STATUS[r.sess.status||'ready'];
       body+=`<tr class="grp"><td colspan="${colCount}"><strong>${esc(r.sess.title)}</strong> <span class="pill ${pc}">${lab}</span> <span class="muted small mono">평가 ${r.st.n}명</span></td></tr>`; }
     const sp=r.sp;
-    if(r.absent){ body+=`<tr class="absent"><td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong> <span class="tag flag">불참</span></td>${sort==='number'?`<td>${esc(r.sess.title)}</td>`:''}<td colspan="${R.content.length+R.speaking.length+6}" class="small">발표에 참여하지 않아 평가하지 않았어요.</td></tr>`; continue; }
-    body+=`<tr>
-      <td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong></td>
+    const zero=`<td class="num zero" title="불참이라 발표 점수는 0점이에요">0</td>`;
+    body+=`<tr class="${r.absent?'absent-row':''}">
+      <td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong>${r.absent?' <span class="tag flag">불참</span>':''}</td>
       ${sort==='number'?`<td class="muted">${esc(r.sess.title)}</td>`:''}
       ${r.st.content.map(x=>cell(x.avg, r.tb&&r.tb.content[x.c.id])).join('')}${subC(r.st.contentTotal, r.st.content, x=>r.tb&&r.tb.content[x.c.id])}
-      ${sp.crits.map(x=>cell(x.avg, r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])).join('')}${subC(sp.total, sp.crits, x=>r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])}
+      ${r.absent? R.speaking.map(()=>zero).join('')+`<td class="num sub zero" title="불참이라 발표 점수는 0점이에요">0</td>`
+        : sp.crits.map(x=>cell(x.avg, r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])).join('')+subC(sp.total, sp.crits, x=>r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])}
       <td class="num muted">${r.st.n}</td>
       <td class="num">${f1(r.grand)}</td>
       <td class="num">${r.tGrand==null?'<span class="muted" title="교사 평가 탭에서 점수를 넣어 주세요">–</span>':r.tGrand}</td>
@@ -892,7 +896,7 @@ function tStudents(cls){
 </tr>`;
   }
   return `<div class="stack">
-    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">항목별 점수와 소계도 <strong>교사 점수×0.6 + 학생 평균×0.4</strong>로 계산해요(소수 첫째 자리까지). 아직 교사 점수가 없는 칸은 <span class="pend">흐린 글씨</span>로 학생 평균만 보여 줘요. 내용·구성은 모둠 점수라 같은 모둠 학생에게 똑같이 들어가요. 최종 점수는 1의 자리까지 반올림해요.</p></div>
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">항목별 점수와 소계도 <strong>교사 점수×0.6 + 학생 평균×0.4</strong>로 계산해요(소수 첫째 자리까지). 아직 교사 점수가 없는 칸은 <span class="pend">흐린 글씨</span>로 학생 평균만 보여 줘요. 내용·구성은 모둠 점수라 같은 모둠 학생에게 똑같이 들어가요. 최종 점수는 1의 자리까지 반올림해요. <strong>불참 학생</strong>은 발표(개인) 점수를 0점으로 하고 모둠의 내용·구성 점수만 반영해요.</p></div>
       <div class="chips" role="group" aria-label="정렬"><button class="chip" aria-pressed="${sort==='group'}" data-act="sortStudents" data-sort="group">모둠순</button><button class="chip" aria-pressed="${sort==='number'}" data-act="sortStudents" data-sort="number">번호순</button></div></div>
     <div class="card tblwrap" style="padding:0">
       <table class="data stu">

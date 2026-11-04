@@ -241,6 +241,14 @@ table.rat tr.flagrow td{background:var(--pen-soft)}
 .quotes{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
 .quotes li{border-left:3px solid var(--line);padding:2px 0 2px 12px;font-size:14px;overflow-wrap:anywhere}
 .spcard{border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.rp-wrap{max-width:760px;width:100%;margin:0 auto}
+.qbox{display:flex;flex-direction:column;gap:8px}
+.final-row{display:flex;align-items:baseline;gap:8px;justify-content:flex-end;border-top:1px dashed var(--line);padding-top:10px}
+.final-row strong{font-family:var(--f-mono);font-size:24px}
+.pdf-hold{position:fixed;left:-10000px;top:0;width:718px;pointer-events:none}
+.pdf-doc{background:#fff}
+.pdf-doc .report{border:0;border-radius:0;padding:8px 4px}
+.pdf-title{font-size:12px;color:#666;margin:0 4px 6px}
 details.more summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:500}
 
 .sharebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sky-soft);border-radius:var(--r);padding:12px 14px}
@@ -477,20 +485,29 @@ function sessionStats(sid){
     contentMax: R.content.reduce((a,c)=>a+c.max,0)};
 }
 
-function buildReport(sid, draft){
+function buildReport(sid){
   const st=sessionStats(sid); if(!st) return null;
   const fOn=st.cls.filterOn!==false;
   const keep=c=>!c.hidden && !(fOn&&c.flagged);
-  const inc=!!draft.includeComments;
+  /* scores: teacher 70% + student average 30% per criterion (student average alone where the teacher hasn't scored yet) */
+  const ts=teacherScores(sid); const tb=ts&&ts.by;
+  const w=(avg,t)=> t==null? avg : avg==null? null : wMix(t,avg);
+  const sum=a=> a.some(x=>x.avg==null)? null : a.reduce((s,x)=>s+x.avg,0);
+  const content=st.content.map(x=>({name:x.c.name, max:x.c.max, avg:w(x.avg, tb&&tb.content[x.c.id])}));
+  const contentTotal=content.length? sum(content) : null;
+  const weighted=!!tb && st.cls.rubric.content.every(c=>tb.content[c.id]!=null);
+  const speakers=st.speaking.map(s=>{
+    const crits=s.crits.map(x=>({name:x.c.name, max:x.c.max, avg:w(x.avg, tb&&tb.speaking[s.sp.id]&&tb.speaking[s.sp.id][x.c.id])}));
+    const total=sum(crits);
+    return {id:s.sp.id, name:s.sp.name, total, totalMax:s.totalMax, crits,
+      final: contentTotal!=null&&total!=null? roundW(contentTotal+total) : null, finalMax: st.contentMax+s.totalMax,
+      comments: s.comments.filter(keep).map(c=>c.text)};
+  });
   return {
-    sid, classId:st.cls.id, title:st.sess.title, topic:st.sess.topic||'', n:st.n,
-    groupSummary:draft.groupSummary||'', includeComments:inc,
-    content: st.content.map(x=>({name:x.c.name, max:x.c.max, avg:x.avg})),
-    contentComments: inc? st.contentComments.filter(keep).map(c=>c.text):[],
-    contentTotal: st.contentTotal, contentMax: st.contentMax,
-    speakers: st.speaking.map(s=>({id:s.sp.id, name:s.sp.name, summary:(draft.speakerSummaries||{})[s.sp.id]||'', total:s.total, totalMax:s.totalMax,
-      comments: inc? s.comments.filter(keep).map(c=>c.text):[],
-      crits:s.crits.map(x=>({name:x.c.name, max:x.c.max, avg:x.avg}))}))
+    sid, classId:st.cls.id, title:st.sess.title, topic:st.sess.topic||'', n:st.n, weighted,
+    content, contentComments: st.contentComments.filter(keep).map(c=>c.text),
+    contentTotal, contentMax: st.contentMax, speakers,
+    absent: st.absent.map(p=>p.name)
   };
 }
 
@@ -499,7 +516,6 @@ function isEditing(){
   const v=S.view;
   if(v.name==='eval') return true;
   if(v.name==='class' && v.tab==='rubric') return true;
-  if(v.name==='class' && v.tab==='report') return true;
   if(v.name==='class' && v.tab==='teval' && S.tevalDraft && S.tevalDraft.dirty) return true;
   if(v.name==='class' && v.tab==='sessions' && S.sessionForm) return true;
   if(v.name==='class' && v.tab==='part' && S.rosterDraft) return true;
@@ -975,62 +991,64 @@ function tReport(cls){
   const ss=sessionsOf(cls.id);
   if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
   let sid=S.view.sid; if(!sid||!S.sessions[sid]||S.sessions[sid].classId!==cls.id){ sid=(ss.find(s=>s.status==='closed')||ss[0]).id; S.view.sid=sid; }
-  if(!S.reportDraft||S.reportDraft.sid!==sid){
-    const d=S.drafts[sid];
-    S.reportDraft={sid, groupSummary:d?.groupSummary||'', speakerSummaries:clone(d?.speakerSummaries||{}), includeComments:d?d.includeComments!==false:true, dirty:false};
-  }
-  const r=S.reportDraft, sess=S.sessions[sid];
+  if(!S.reportDraft||S.reportDraft.sid!==sid) S.reportDraft={sid};
   return `<div class="stack">
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>종합 피드백 리포트</h2>
+      <p class="muted small">점수는 <strong>선생님 평가 70% + 친구 평가 평균 30%</strong>로 보여 줘요(선생님 점수가 아직 없는 항목은 친구 평균만). 친구들의 종합 의견은 이름 없이 <strong>익명</strong>으로 나가고, 필터에 걸리거나 대시보드에서 숨긴 의견은 빠져요.</p></div>
+      <button class="btn primary" data-act="reportPdf" id="pdfBtn">반 전체 PDF 내려받기</button></div>
     <div class="chips">${ss.map(s=>`<button class="chip" aria-pressed="${s.id===sid}" data-act="reportPick" data-id="${esc(s.id)}">${esc(s.title)}${S.pubReports[s.id]?'<span class="n">공개</span>':''}</button>`).join('')}</div>
-    <div class="two">
-      <section class="card stack">
-        <div id="reportMeta">${reportMetaHTML()}</div>
-        <div class="row wrapr">
-          <span class="muted small">대시보드의 학생 의견을 참고해 피드백을 적어 주세요. 필터·숨김 처리된 의견은 리포트에 나가지 않아요.</span>
-        </div>
-        <label class="fld">모둠 종합 피드백 (내용·구성)<textarea id="rpGroup" data-rp="group" rows="6" placeholder="잘한 점: …&#10;더 나아지려면: …">${esc(r.groupSummary)}</textarea></label>
-        ${(sess.speakers||[]).filter(x=>!x.absent).map(sp=>`<label class="fld">${esc(sp.name)} · 발표 피드백<textarea id="rpSp-${esc(sp.id)}" data-rp="sp|${esc(sp.id)}" rows="4" placeholder="잘한 점: …&#10;더 나아지려면: …">${esc(r.speakerSummaries[sp.id]||'')}</textarea></label>`).join('')}
-        <label class="switch"><input type="checkbox" id="rpInc" data-rp="inc" ${r.includeComments?'checked':''}>학생 의견 원문(익명)도 함께 보여 주기</label>
-        <div class="row wrapr">
-          <button class="btn" data-act="reportSave">임시 저장</button>
-          <button class="btn primary" data-act="reportPublish">${S.pubReports[sid]?'공개 내용 갱신':'학생에게 공개'}</button>
-          ${S.pubReports[sid]?`<button class="btn danger" data-act="reportUnpublish">공개 취소</button>`:''}
-        </div>
-      </section>
-      <section class="stack"><div class="eyebrow">학생에게 보이는 화면</div><div id="reportPreview">${reportPreviewHTML()}</div></section>
+    <div class="card row wrapr" style="justify-content:space-between">
+      <div id="reportMeta">${reportMetaHTML()}</div>
+      <div class="row wrapr">
+        <button class="btn" data-act="reportPublish">${S.pubReports[sid]?'공개 내용 갱신':'학생에게 공개'}</button>
+        ${S.pubReports[sid]?`<button class="btn danger" data-act="reportUnpublish">공개 취소</button>`:''}
+      </div>
     </div>
+    <div id="reportPreview" class="rp-wrap">${reportPreviewHTML()}</div>
   </div>`;
 }
 function reportMetaHTML(){
   const sid=S.reportDraft.sid, sess=S.sessions[sid]; if(!sess) return '';
   const [lab,pc]=STATUS[sess.status||'ready']; const pub=S.pubReports[sid]; const d=S.drafts[sid];
   return `<div class="row wrapr"><h2>${esc(sess.title)}</h2><span class="pill ${pc}">${lab}</span></div>
-    <p class="muted small">제출 ${submitCount(sid,sess.classId)}명 · ${pub?`<strong style="color:var(--ok)">${fmtTime(pub.publishedAt)}에 공개됨</strong> (이후 바뀐 내용은 '공개 내용 갱신'을 눌러야 반영돼요)`:'아직 학생에게 공개되지 않았어요'}${d?.updatedAt?` · 임시 저장 ${fmtTime(d.updatedAt)}`:''}</p>
+    <p class="muted small">제출 ${submitCount(sid,sess.classId)}명 · ${pub?`<strong style="color:var(--ok)">${fmtTime(pub.publishedAt)}에 학생에게 공개됨</strong> (이후 바뀐 점수·의견은 '공개 내용 갱신'을 눌러야 학생 화면에 반영돼요)`:'아직 학생에게 공개되지 않았어요'}</p>
     ${sess.status==='open'?`<div class="note" style="margin-top:8px">아직 평가 중이에요. 마감한 뒤 리포트를 공개하면 모든 의견이 반영돼요.</div>`:''}`;
 }
-function reportPreviewHTML(){ const rep=buildReport(S.reportDraft.sid, S.reportDraft); return rep?renderReport(rep):''; }
+function reportPreviewHTML(){ const rep=buildReport(S.reportDraft.sid); return rep?renderReport(rep):''; }
 
 function renderReport(rep){
   const bar=(x)=>`<div class="barrow"><span class="lab">${esc(x.name)}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.max}</span></div>`;
-  const quotes=(arr)=>arr&&arr.length?`<details class="more"><summary>친구들의 종합 의견 ${arr.length}개 보기</summary><ul class="quotes" style="margin-top:10px">${arr.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></details>`:'';
+  const quotes=(arr)=>arr&&arr.length?`<div class="qbox"><h3 class="h3">친구들의 종합 의견 <span class="muted small">익명 · ${arr.length}개</span></h3><ul class="quotes">${arr.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`:'';
+  const basis=rep.weighted===undefined? '' : rep.weighted? ' · 점수: 선생님 70% + 친구 평균 30%' : ' · 점수: 친구 평가 평균';
   return `<article class="report">
-    <header><span class="eyebrow">종합 피드백 리포트</span><h1>${esc(rep.title)}</h1><p class="muted small">${rep.topic?esc(rep.topic)+' · ':''}친구 ${rep.n}명이 평가했어요</p></header>
+    <header><span class="eyebrow">종합 피드백 리포트</span><h1>${esc(rep.title)}</h1><p class="muted small">${rep.topic?esc(rep.topic)+' · ':''}친구 ${rep.n}명이 평가했어요${basis}</p></header>
     <section>
-      <div class="sec-head"><h2>내용·구성</h2><div class="total"><span class="big">${f1(rep.contentTotal)}</span><span class="muted">/ ${rep.contentMax}</span></div></div>
+      <div class="sec-head"><h2>내용·구성 <span class="muted small">모둠 점수</span></h2><div class="total"><span class="big">${f1(rep.contentTotal)}</span><span class="muted">/ ${rep.contentMax}</span></div></div>
       <div class="bars">${rep.content.map(bar).join('')}</div>
       ${rep.groupSummary?`<div class="summary">${esc(rep.groupSummary)}</div>`:''}
-      ${quotes(rep.contentComments)}
     </section>
     <section>
-      <h2>발표</h2>
+      <h2>발표 <span class="muted small">개인 점수</span></h2>
       ${rep.speakers.map(s=>`<div class="spcard">
         <div class="sec-head"><div class="spkname"><span class="av">${esc((s.name||'?').slice(0,1))}</span>${esc(s.name)}</div><div class="total"><span class="big" style="font-size:26px">${f1(s.total)}</span><span class="muted">/ ${s.totalMax}</span></div></div>
         <div class="bars">${s.crits.map(bar).join('')}</div>
+        ${s.final!=null&&s.final!==undefined?`<div class="final-row"><span>최종 점수 <span class="muted small">(내용·구성 + 발표, 반올림)</span></span><strong>${s.final}</strong><span class="muted">/ ${s.finalMax}</span></div>`:''}
         ${s.summary?`<div class="summary">${esc(s.summary)}</div>`:''}
         ${quotes(s.comments)}
       </div>`).join('')}
+      ${rep.absent&&rep.absent.length?`<p class="muted small">불참: ${rep.absent.map(esc).join(', ')} (발표 점수 0점)</p>`:''}
     </section>
+    ${quotes(rep.contentComments)?`<section>${quotes(rep.contentComments)}</section>`:''}
   </article>`;
+}
+
+/* whole-class PDF: every presentation's report, one per page */
+let pdfLib=null;
+function loadPdfLib(){
+  if(window.html2pdf) return Promise.resolve();
+  if(pdfLib) return pdfLib;
+  pdfLib=new Promise((ok,bad)=>{ const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'; sc.onload=()=>ok(); sc.onerror=()=>{ pdfLib=null; bad(new Error('load')); }; document.head.appendChild(sc); });
+  return pdfLib;
 }
 
 /* ===== student ===== */
@@ -1250,10 +1268,32 @@ const A = {
   reportPick(el){ S.view.sid=el.dataset.id; S.reportDraft=null; render(); },
   async reportSave(){ await saveReportDraft('임시 저장했어요.'); },
   async reportPublish(){
-    const r=S.reportDraft; const rep=buildReport(r.sid,r); if(!rep) return;
+    const r=S.reportDraft; const rep=buildReport(r.sid); if(!rep) return;
     if(!rep.n) return toast('제출된 평가가 없어 공개할 내용이 없어요.',true);
-    if(!await saveReportDraft()) return;
     await run(()=>S.db.doc('cfg/root/reports/'+r.sid).set({...rep,publishedAt:nowISO()}),'학생들에게 리포트를 공개했어요.');
+  },
+  async reportPdf(){
+    const cls=S.classes[S.view.cid]; if(!cls||S.pdfBusy) return;
+    const reps=sessionsOf(cls.id).map(s=>buildReport(s.id)).filter(r=>r&&r.n);
+    if(!reps.length) return toast('아직 제출된 평가가 없어 PDF로 만들 내용이 없어요.',true);
+    S.pdfBusy=true; const btn=$('#pdfBtn'); if(btn){ btn.disabled=true; btn.textContent='PDF 만드는 중…'; }
+    const root=document.documentElement, prevTheme=root.getAttribute('data-theme');
+    const hold=document.createElement('div'); hold.className='pdf-hold'; const box=document.createElement('div'); box.className='pdf-doc';
+    const d=new Date(); const today=`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+    box.innerHTML=reps.map((r,i)=>`<div class="pdf-page">${i===0?`<div class="pdf-title"><strong>${esc(cls.name)}</strong> · 발표 종합 피드백 · ${today}</div>`:''}${renderReport(r)}</div>`).join('');
+    try{
+      await loadPdfLib();
+      root.setAttribute('data-theme','light'); hold.appendChild(box); document.body.appendChild(hold);
+      await window.html2pdf().set({
+        margin:[10,10,12,10], filename:`${cls.name.replace(/[\\/:*?"<>|]/g,'_')}_종합피드백.pdf`,
+        image:{type:'jpeg',quality:0.95},
+        html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+        pagebreak:{mode:['css'], before:'.pdf-page + .pdf-page', avoid:['.barrow','.spcard .sec-head','.quotes li','.final-row','.report header','.qbox h3']}
+      }).from(box).save();
+      toast('PDF를 내려받았어요.');
+    }catch(e){ console.error(e); toast('PDF를 만들지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.',true); }
+    finally{ hold.remove(); if(prevTheme==null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme',prevTheme); S.pdfBusy=false; const b=$('#pdfBtn'); if(b){ b.disabled=false; b.textContent='반 전체 PDF 내려받기'; } }
   },
   async reportUnpublish(){ const sid=S.reportDraft.sid; await run(()=>S.db.doc('cfg/root/reports/'+sid).delete(),'공개를 취소했어요.'); },
   reportStop(){ S.aiCtl?.abort(); },

@@ -205,6 +205,9 @@ table.stu td.fin strong{font-size:16px}
 .pend{color:var(--muted);font-style:italic}
 .tonly{color:var(--accent);font-weight:600}
 table.stu td.zero{color:var(--pen)}
+table.stu .bonus-chk{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);cursor:pointer;margin-right:6px;white-space:nowrap}
+table.stu .bonus-chk input{width:16px;height:16px;margin:0;accent-color:var(--accent);cursor:pointer}
+table.stu .bonus-chk.on{color:var(--accent);font-weight:700}
 /* per-rater tab */
 table.rat td.cmtc{white-space:normal;min-width:220px;max-width:360px;font-size:13px;overflow-wrap:anywhere}
 table.rat td.lo{color:var(--pen);font-weight:700}
@@ -334,7 +337,7 @@ function makeDB(){
 }
 const S = {
   db:null, user:null, uid:null, teacher:false, canWrite:null, ready:false, err:null,
-  classes:{}, sessions:{}, pubReports:{}, drafts:{}, mods:{}, evals:{}, tevals:{}, tevalDraft:null, myDoc:null,
+  classes:{}, sessions:{}, pubReports:{}, drafts:{}, mods:{}, evals:{}, tevals:{}, bonus:{}, tevalDraft:null, myDoc:null,
   view:{name:'home'}, preview:false, previewDoc:{byClass:{}},
   rubricDraft:null, sessionForm:null, evalDraft:null, profileDraft:null, reportDraft:null,
   confirm:null, renaming:false, aiBusy:false, aiCtl:null, evalTried:false
@@ -502,7 +505,8 @@ function buildReport(sid){
     const crits=s.crits.map(x=>({name:x.c.name, max:x.c.max, avg:w(x.avg, tb&&tb.speaking[s.sp.id]&&tb.speaking[s.sp.id][x.c.id], x.c), only:!!(x.c.teacherOnly||x.avg==null)}));
     const total=sum(crits);
     return {id:s.sp.id, name:s.sp.name, total, totalMax:s.totalMax, crits,
-      final: contentTotal!=null&&total!=null? roundW(contentTotal+total) : null, finalMax: st.R.content.reduce((a,c)=>a+c.max,0)+s.totalMax,
+      bonus: bonusOn(st.cls.id, sid, s.sp.id)? BONUS_PT : 0,
+      final: contentTotal!=null&&total!=null? roundW(contentTotal+total)+(bonusOn(st.cls.id, sid, s.sp.id)? BONUS_PT : 0) : null, finalMax: st.R.content.reduce((a,c)=>a+c.max,0)+s.totalMax,
       comments: s.comments.filter(keep).map(c=>c.text)};
   });
   return {
@@ -814,12 +818,14 @@ function tPart(cls){
 
 /* weighting: teacher 7 : student average 3 (change W_T to adjust; student share is 1-W_T) */
 const W_T=0.7;
+const BONUS_PT=1; // 가산점
 /* a criterion is "teacher only" when it's marked so in the rubric, or when no student has scored it (e.g. added after students evaluated) */
 const isStuCrit=c=>!c.teacherOnly;
 /* one criterion's final value: teacher-only → teacher 100%, otherwise teacher 70% + student average 30% */
 const critVal=(c,sAvg,t)=> t==null? null : (c.teacherOnly||sAvg==null)? t : wMix(t,sAvg);
 const wMix=(t,s)=> t*W_T + s*(1-W_T);
 const roundW=v=> Math.round(Math.round(v*1e6)/1e6); // strip float noise like 17.4999999 before rounding
+const bonusOn=(cid,sid,spId)=> !!(S.bonus[cid]&&S.bonus[cid].marks&&S.bonus[cid].marks[sid+'|'+spId]);
 /* teacher's own scores: drafts/root/teval/<sid> = {content:{critId:{score}}, speaking:{spId:{critId:{score}}}} */
 function teacherScores(sid){
   const sess=S.sessions[sid]; if(!sess) return null; const cls=S.classes[sess.classId]; if(!cls) return null;
@@ -915,11 +921,12 @@ function tStudents(cls){
     if(t==null) return only? `<td class="num pend" title="교사만 평가하는 항목이에요. 교사 평가 탭에서 점수를 넣어 주세요">–</td>` : `<td class="num pend" title="교사 점수가 없어 학생 평균만 보여요">${f1(x.avg)}</td>`;
     return only? `<td class="num tonly" title="학생 평가가 없는 항목 · 교사 점수 100%">${f1(t)}</td>` : `<td class="num" title="교사 ${t} · 학생 평균 ${f1(x.avg)}">${f1(wMix(t,x.avg))}</td>`; };
   const subC=(sTot,sum)=> sum==null? `<td class="num sub pend" title="교사 점수가 다 들어가지 않아 학생 평균만 보여요">${f1(sTot)}</td>` : `<td class="num sub">${f1(sum)}</td>`;
-  const colCount=4+R.content.length+R.speaking.length+5;
+  const colCount=2+(sort==='number'?1:0)+R.content.length+1+R.speaking.length+1+2;
+  const marks=(S.bonus[cls.id]&&S.bonus[cls.id].marks)||{};
   let body=''; let lastG=-1;
   for(const r of rows){
     if(sort==='group' && r.gi!==lastG){ lastG=r.gi; const [lab,pc]=STATUS[r.sess.status||'ready'];
-      body+=`<tr class="grp"><td colspan="${colCount}"><strong>${esc(r.sess.title)}</strong> <span class="pill ${pc}">${lab}</span> <span class="muted small mono">평가 ${r.st.n}명</span></td></tr>`; }
+      body+=`<tr class="grp"><td colspan="${colCount}"><strong>${esc(r.sess.title)}</strong> <span class="pill ${pc}">${lab}</span></td></tr>`; }
     const sp=r.sp;
     const zero=`<td class="num zero" title="불참이라 개별평가는 0점이에요">0</td>`;
     body+=`<tr class="${r.absent?'absent-row':''}">
@@ -928,23 +935,22 @@ function tStudents(cls){
       ${r.st.content.map(x=>cell(x, r.tb&&r.tb.content[x.c.id])).join('')}${subC(r.st.contentTotal, r.cSum)}
       ${r.absent? R.speaking.map(()=>zero).join('')+`<td class="num sub zero" title="불참이라 개별평가는 0점이에요">0</td>`
         : sp.crits.map(x=>cell(x, r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])).join('')+subC(sp.total, r.sSum)}
-      <td class="num muted">${r.st.n}</td>
-      <td class="num">${f1(r.grand)}</td>
       <td class="num">${r.tGrand==null?'<span class="muted" title="교사 평가 탭에서 점수를 넣어 주세요">–</span>':r.tGrand}</td>
-      <td class="num fin"><div class="gt"><strong>${r.final??'–'}</strong><span class="track"><span class="fill" style="width:${r.final==null?0:r.final/(cMax+sMax)*100}%"></span></span></div></td>
+      ${(()=>{ const bk=r.sess.id+'|'+sp.sp.id; const on=!!marks[bk]; const fin=r.final==null? null : r.final+(on?BONUS_PT:0);
+        return `<td class="num fin"><div class="gt"><label class="bonus-chk ${on?'on':''}" title="체크하면 최종 점수에 ${BONUS_PT}점을 더해요"><input type="checkbox" data-act-change="toggleBonus" data-key="${esc(bk)}" ${on?'checked':''} aria-label="${esc(sp.sp.name)} 가산점">가산점${on?` +${BONUS_PT}`:''}</label><strong>${fin??'–'}</strong><span class="track"><span class="fill" style="width:${fin==null?0:Math.min(100,fin/(cMax+sMax)*100)}%"></span></span></div></td>`; })()}
 </tr>`;
   }
   return `<div class="stack">
-    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">항목별 점수와 소계도 <strong>교사 점수×0.7 + 학생 평균×0.3</strong>로 계산해요(소수 첫째 자리까지). 아직 교사 점수가 없는 칸은 <span class="pend">흐린 글씨</span>로 학생 평균만 보여 줘요. 조별평가는 모둠 점수라 같은 조 학생에게 똑같이 들어가요. 최종 점수는 1의 자리까지 반올림해요. <strong>불참 학생</strong>은 개별평가 점수를 0점으로 하고 조별평가 점수만 반영해요. 학생 평가에는 없고 <strong>교사만 평가하는 항목</strong>은 <span class="tonly">교사 점수 100%</span>로 반영해요.</p></div>
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">항목별 점수와 소계도 <strong>교사 점수×0.7 + 학생 평균×0.3</strong>로 계산해요(소수 첫째 자리까지). 아직 교사 점수가 없는 칸은 <span class="pend">흐린 글씨</span>로 학생 평균만 보여 줘요. 조별평가는 모둠 점수라 같은 조 학생에게 똑같이 들어가요. 최종 점수는 1의 자리까지 반올림해요. <strong>불참 학생</strong>은 개별평가 점수를 0점으로 하고 조별평가 점수만 반영해요. 학생 평가에는 없고 <strong>교사만 평가하는 항목</strong>은 <span class="tonly">교사 점수 100%</span>로 반영해요. <strong>가산점</strong>에 체크하면 최종 점수에 1점을 더해요(피드백 리포트·PDF에도 반영).</p></div>
       <div class="chips" role="group" aria-label="정렬"><button class="chip" aria-pressed="${sort==='group'}" data-act="sortStudents" data-sort="group">모둠순</button><button class="chip" aria-pressed="${sort==='number'}" data-act="sortStudents" data-sort="number">번호순</button></div></div>
     <div class="card tblwrap" style="padding:0">
       <table class="data stu">
         <thead>
-          <tr class="band"><th colspan="${sort==='number'?3:2}"></th><th colspan="${R.content.length+1}" class="bandc">조별평가</th><th colspan="${R.speaking.length+1}" class="bands">개별평가</th><th></th><th colspan="3" class="bandf">총점 /${cMax+sMax}</th></tr>
+          <tr class="band"><th colspan="${sort==='number'?3:2}"></th><th colspan="${R.content.length+1}" class="bandc">조별평가</th><th colspan="${R.speaking.length+1}" class="bands">개별평가</th><th colspan="2" class="bandf">총점 /${cMax+sMax}</th></tr>
           <tr><th>번호</th><th>이름</th>${sort==='number'?'<th>모둠</th>':''}
             ${R.content.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${cMax}</span></th>
             ${R.speaking.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${sMax}</span></th>
-            <th class="num">평가 수</th><th class="num">학생 평균</th><th class="num">교사</th><th class="num fin">최종 <span class="muted">(7:3)</span></th></tr>
+            <th class="num">교사</th><th class="num fin">가산점 · 최종 <span class="muted">(7:3)</span></th></tr>
         </thead>
         <tbody>${body||`<tr><td colspan="${colCount}" class="muted">발표자가 없어요.</td></tr>`}</tbody>
       </table>
@@ -1054,7 +1060,7 @@ function renderReport(rep){
       ${rep.speakers.map(s=>`<div class="spcard">
         <div class="sec-head"><div class="spkname"><span class="av">${esc((s.name||'?').slice(0,1))}</span>${esc(s.name)}</div><div class="total"><span class="big" style="font-size:26px">${f1(s.total)}</span><span class="muted">/ ${s.totalMax}</span></div></div>
         <div class="bars">${s.crits.map(bar).join('')}</div>
-        ${s.final!=null&&s.final!==undefined?`<div class="final-row"><span>최종 점수 <span class="muted small">(조별평가 + 개별평가, 반올림)</span></span><strong>${s.final}</strong><span class="muted">/ ${s.finalMax}</span></div>`:''}
+        ${s.final!=null&&s.final!==undefined?`<div class="final-row"><span>최종 점수 <span class="muted small">(조별평가 + 개별평가, 반올림${s.bonus?` · 가산점 +${s.bonus} 포함`:''})</span></span><strong>${s.final}</strong><span class="muted">/ ${s.finalMax}</span></div>`:''}
         ${s.summary?`<div class="summary">${esc(s.summary)}</div>`:''}
         ${quotes(s.comments)}
       </div>`).join('')}
@@ -1203,6 +1209,7 @@ const A = {
     const ok=await run(async()=>{
       for(const s of sessionsOf(cid)){ await S.db.doc('cfg/root/sessions/'+s.id).delete(); await S.db.doc('drafts/root/reports/'+s.id).delete(); await S.db.doc('cfg/root/reports/'+s.id).delete(); if(S.tevals[s.id]) await S.db.doc('drafts/root/teval/'+s.id).delete(); }
       await S.db.doc('drafts/root/mod/'+cid).delete();
+      if(S.bonus[cid]) await S.db.doc('drafts/root/bonus/'+cid).delete();
       for(const [uid,d] of Object.entries(S.evals)){ if(d.byClass&&d.byClass[cid]){ const nd=clone(d); delete nd.byClass[cid]; await S.db.doc('evals/'+uid).set(nd); } }
       await S.db.doc('cfg/root/classes/'+cid).delete();
     },'반을 삭제했어요.');
@@ -1260,6 +1267,10 @@ const A = {
   async resetOne(el){ const [uid,sid]=el.dataset.id.split('|'); const sess=S.sessions[sid]; S.confirm=null; if(!sess) return;
     await run(()=>removeItems(sess.classId, sid, uid),'이 학생의 제출 내용을 지웠어요. 평가가 열려 있으면 다시 제출할 수 있어요.'); render(); },
   sortStudents(el){ S.view.sort=el.dataset.sort; render(); },
+  async toggleBonus(el){ const cid=S.view.cid, k=el.dataset.key; const marks=clone((S.bonus[cid]&&S.bonus[cid].marks)||{});
+    if(el.checked) marks[k]=true; else delete marks[k];
+    S.bonus[cid]={id:cid,marks}; render();
+    await run(()=>S.db.doc('drafts/root/bonus/'+cid).set({marks,updatedAt:nowISO()}), el.checked?`가산점 ${BONUS_PT}점을 줬어요.`:'가산점을 뺐어요.'); },
   async toggleAbsent(el){ const s=S.sessions[el.dataset.id]; if(!s) return;
     const sp=clone(s.speakers||[]); const p=sp.find(x=>x.id===el.dataset.sp); if(!p) return;
     if(!p.absent && sp.filter(x=>!x.absent).length<=1) return toast('발표자가 한 명은 남아 있어야 해요.',true);
@@ -1521,6 +1532,7 @@ function startApp(){
     sub(db.collection('drafts/root/reports'), x=>{ S.drafts=mapSnap(x); });
     sub(db.collection('drafts/root/mod'), x=>{ S.mods=mapSnap(x); });
     sub(db.collection('drafts/root/teval'), x=>{ S.tevals=mapSnap(x); });
+    sub(db.collection('drafts/root/bonus'), x=>{ S.bonus=mapSnap(x); });
     sub(db.collection('evals'), x=>{ S.evals=mapSnap(x); });
   } else {
     S.myUnsub=sub(db.doc('evals/'+S.uid), x=>{ S.myDoc=x.exists?clone(x.data()):null; });

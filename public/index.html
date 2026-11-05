@@ -203,6 +203,7 @@ table.stu .bandf{text-align:center;border-bottom:2px solid var(--fg)!important;c
 table.stu td.fin,table.stu th.fin{background:var(--accent-soft);position:sticky;right:0;z-index:1;box-shadow:-6px 0 8px -6px rgba(0,0,0,.18)}
 table.stu td.fin strong{font-size:16px}
 .pend{color:var(--muted);font-style:italic}
+.tonly{color:var(--accent);font-weight:600}
 table.stu td.zero{color:var(--pen)}
 /* per-rater tab */
 table.rat td.cmtc{white-space:normal;min-width:220px;max-width:360px;font-size:13px;overflow-wrap:anywhere}
@@ -477,13 +478,13 @@ function sessionStats(sid){
     const crits=R.speaking.map(c=>mk(c, it=>it.speaking&&it.speaking[sp.id]&&it.speaking[sp.id][c.id]));
     const comments=[];
     for(const e of entries){ const it=e.items[sid]; const t=it.speakerReasons&&it.speakerReasons[sp.id]; if(t&&t.trim()) comments.push(cm(e,`${e.uid}|${sid}|s|${sp.id}`,t,sumGiven(it.speaking&&it.speaking[sp.id],R.speaking))); }
-    const done=crits.every(x=>x.avg!=null);
-    return {sp, crits, comments, total: done? crits.reduce((a,x)=>a+x.avg,0):null, totalMax:R.speaking.reduce((a,c)=>a+c.max,0)};
+    const sc=crits.filter(x=>isStuCrit(x.c)&&x.avg!=null);
+    return {sp, crits, comments, total: sc.length? sc.reduce((a,x)=>a+x.avg,0):null, totalMax:R.speaking.reduce((a,c)=>a+c.max,0), stuMax:sc.reduce((a,x)=>a+x.c.max,0)};
   });
-  const cDone=content.every(x=>x.avg!=null);
+  const scC=content.filter(x=>isStuCrit(x.c)&&x.avg!=null); // student-scored content criteria only
   return {sess, cls, R, n:entries.length, entries, content, contentComments, speaking, absent:(sess.speakers||[]).filter(sp=>sp.absent),
-    contentTotal: cDone&&content.length? content.reduce((a,x)=>a+x.avg,0):null,
-    contentMax: R.content.reduce((a,c)=>a+c.max,0)};
+    contentTotal: scC.length? scC.reduce((a,x)=>a+x.avg,0):null,
+    contentMax: (scC.length? scC : content.filter(x=>isStuCrit(x.c))).reduce((a,x)=>a+x.c.max,0)};
 }
 
 function buildReport(sid){
@@ -492,22 +493,22 @@ function buildReport(sid){
   const keep=c=>!c.hidden && !(fOn&&c.flagged);
   /* scores: teacher 70% + student average 30% per criterion (student average alone where the teacher hasn't scored yet) */
   const ts=teacherScores(sid); const tb=ts&&ts.by;
-  const w=(avg,t)=> t==null? avg : avg==null? null : wMix(t,avg);
+  const w=(avg,t,c)=> t==null? (c.teacherOnly? null : avg) : critVal(c,avg,t);
   const sum=a=> a.some(x=>x.avg==null)? null : a.reduce((s,x)=>s+x.avg,0);
-  const content=st.content.map(x=>({name:x.c.name, max:x.c.max, avg:w(x.avg, tb&&tb.content[x.c.id])}));
+  const content=st.content.map(x=>({name:x.c.name, max:x.c.max, avg:w(x.avg, tb&&tb.content[x.c.id], x.c), only:!!(x.c.teacherOnly||x.avg==null)}));
   const contentTotal=content.length? sum(content) : null;
   const weighted=!!tb && st.cls.rubric.content.every(c=>tb.content[c.id]!=null);
   const speakers=st.speaking.map(s=>{
-    const crits=s.crits.map(x=>({name:x.c.name, max:x.c.max, avg:w(x.avg, tb&&tb.speaking[s.sp.id]&&tb.speaking[s.sp.id][x.c.id])}));
+    const crits=s.crits.map(x=>({name:x.c.name, max:x.c.max, avg:w(x.avg, tb&&tb.speaking[s.sp.id]&&tb.speaking[s.sp.id][x.c.id], x.c), only:!!(x.c.teacherOnly||x.avg==null)}));
     const total=sum(crits);
     return {id:s.sp.id, name:s.sp.name, total, totalMax:s.totalMax, crits,
-      final: contentTotal!=null&&total!=null? roundW(contentTotal+total) : null, finalMax: st.contentMax+s.totalMax,
+      final: contentTotal!=null&&total!=null? roundW(contentTotal+total) : null, finalMax: st.R.content.reduce((a,c)=>a+c.max,0)+s.totalMax,
       comments: s.comments.filter(keep).map(c=>c.text)};
   });
   return {
     sid, classId:st.cls.id, title:st.sess.title, topic:st.sess.topic||'', n:st.n, weighted,
     content, contentComments: st.contentComments.filter(keep).map(c=>c.text),
-    contentTotal, contentMax: st.contentMax, speakers,
+    contentTotal, contentMax: st.R.content.reduce((a,c)=>a+c.max,0), speakers,
     absent: st.absent.map(p=>p.name),
     teacherComment: ((S.tevals[sid]&&S.tevals[sid].comment)||'').trim()
   };
@@ -687,6 +688,7 @@ function tRubric(cls){
         <label class="fld">배점<input type="number" id="rb-${key}-${i}-max" min="1" max="100" data-rb="${key}|${i}|max" value="${c.max}" ${custom?'disabled title="직접 입력에서는 가장 높은 점수가 배점이 돼요"':''}></label>
         <label class="fld">점수 간격<select id="rb-${key}-${i}-step" data-rb="${key}|${i}|step">${[['1','1점씩'],['2','2점씩'],['3','3점씩'],['custom','직접 입력']].map(([v,l])=>`<option value="${v}" ${String(c.step||1)===v?'selected':''}>${l}</option>`).join('')}</select></label>
         ${custom?'':`<label class="fld">최저점<input type="number" id="rb-${key}-${i}-min" min="0" max="${c.max}" data-rb="${key}|${i}|min" value="${c.min}" style="width:72px"></label>`}
+        <label class="switch small" title="학생 평가지에는 나오지 않고, 교사 평가 점수가 100% 반영돼요"><input type="checkbox" id="rb-${key}-${i}-to" data-rb="${key}|${i}|teacherOnly" ${c.teacherOnly?'checked':''}>교사만 평가</label>
         <div class="row" style="gap:6px">
           <button class="icon-btn" data-act="moveCrit" data-k="${key}" data-i="${i}" data-dir="-1" ${i===0?'disabled':''} aria-label="위로">↑</button>
           <button class="icon-btn" data-act="moveCrit" data-k="${key}" data-i="${i}" data-dir="1" ${i===d.rubric[key].length-1?'disabled':''} aria-label="아래로">↓</button>
@@ -751,13 +753,13 @@ function tDash(cls){
     <div class="two">
       <section class="card stack">
         <h3 class="h3">내용·구성 <span class="muted small">모둠 평가</span></h3>
-        <div class="bars">${st.content.map(x=>`<div class="barrow"><span class="lab">${esc(x.c.name)}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.c.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.c.max}</span>
+        <div class="bars">${st.content.filter(x=>isStuCrit(x.c)).map(x=>`<div class="barrow"><span class="lab">${esc(x.c.name)}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.c.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.c.max}</span>
           <div class="dist">${scoresOf(x.c).map(s=>`<span>${s}점 ×${x.dist[s]||0}</span>`).join('')}</div></div>`).join('')}</div>
       </section>
       <section class="card stack">
         <h3 class="h3">발표 <span class="muted small">발표자별 평균</span></h3>
-        <div class="tblwrap"><table class="data"><thead><tr><th>발표자</th>${st.R.speaking.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num">합계</th></tr></thead>
-          <tbody>${st.speaking.map(s=>`<tr><td><strong>${esc(s.sp.name)}</strong></td>${s.crits.map(x=>`<td class="num">${f1(x.avg)}</td>`).join('')}<td class="num"><strong>${f1(s.total)}</strong> / ${s.totalMax}</td></tr>`).join('')}</tbody></table></div>
+        <div class="tblwrap"><table class="data"><thead><tr><th>발표자</th>${st.R.speaking.filter(isStuCrit).map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num">합계</th></tr></thead>
+          <tbody>${st.speaking.map(s=>`<tr><td><strong>${esc(s.sp.name)}</strong></td>${s.crits.filter(x=>isStuCrit(x.c)).map(x=>`<td class="num">${f1(x.avg)}</td>`).join('')}<td class="num"><strong>${f1(s.total)}</strong> / ${s.totalMax}</td></tr>`).join('')}</tbody></table></div>
       </section>
     </div>
     <section class="stack">
@@ -812,6 +814,10 @@ function tPart(cls){
 
 /* weighting: teacher 7 : student average 3 (change W_T to adjust; student share is 1-W_T) */
 const W_T=0.7;
+/* a criterion is "teacher only" when it's marked so in the rubric, or when no student has scored it (e.g. added after students evaluated) */
+const isStuCrit=c=>!c.teacherOnly;
+/* one criterion's final value: teacher-only → teacher 100%, otherwise teacher 70% + student average 30% */
+const critVal=(c,sAvg,t)=> t==null? null : (c.teacherOnly||sAvg==null)? t : wMix(t,sAvg);
 const wMix=(t,s)=> t*W_T + s*(1-W_T);
 const roundW=v=> Math.round(Math.round(v*1e6)/1e6); // strip float noise like 17.4999999 before rounding
 /* teacher's own scores: drafts/root/teval/<sid> = {content:{critId:{score}}, speaking:{spId:{critId:{score}}}} */
@@ -854,7 +860,7 @@ function tTeval(cls){
   const d=S.tevalDraft; const pg=tevalProgress();
   const done=s=>{ const t=teacherScores(s.id); if(!t) return false; return t.content!=null && (s.speakers||[]).filter(x=>!x.absent).every(x=>t.speakers[x.id]!=null); };
   const critHTML=(c, v, nameKey, path)=>`<div class="card crit-card">
-    <div class="ch"><strong>${esc(c.name)}</strong><span class="mono muted small">${c.max}점</span></div>
+    <div class="ch"><strong>${esc(c.name)}${c.teacherOnly?' <span class="tag">교사만 평가 · 100% 반영</span>':''}</strong><span class="mono muted small">${c.max}점</span></div>
     <div class="lvls" role="radiogroup" aria-label="${esc(c.name)}">${scoresOf(c).map(s=>`<label class="lvl"><input type="radio" name="${nameKey}" value="${s}" data-tev="${path}" ${v&&v.score===s?'checked':''}><span class="score-badge">${s}</span><span class="d">${esc(c.levels[s]||'')}</span></label>`).join('')}</div>
   </div>`;
   return `<div class="stack">
@@ -891,17 +897,24 @@ function tStudents(cls){
     const act={}; st.speaking.forEach(x=>act[x.sp.id]=x);
     (sess.speakers||[]).forEach((p,si)=>{ const sp=act[p.id];
       const ts=teacherScores(sess.id); const tGrand=ts&&ts.content!=null&&ts.speakers[p.id]!=null? ts.content+ts.speakers[p.id] : null;
+      const tb=ts&&ts.by;
+      const cVals=st.content.map(x=>critVal(x.c, x.avg, tb&&tb.content[x.c.id]));
+      const cSum=cVals.some(v=>v==null)? null : cVals.reduce((a,v)=>a+v,0);
       if(sp){ const grand=st.contentTotal!=null&&sp.total!=null? st.contentTotal+sp.total : null;
-        rows.push({gi,si,sess,st,sp,grand,tGrand,tb:ts&&ts.by,final: grand!=null&&tGrand!=null? roundW(wMix(tGrand,grand)) : null}); }
+        const sVals=sp.crits.map(x=>critVal(x.c, x.avg, tb&&tb.speaking[p.id]&&tb.speaking[p.id][x.c.id]));
+        const sSum=sVals.some(v=>v==null)? null : sVals.reduce((a,v)=>a+v,0);
+        rows.push({gi,si,sess,st,sp,grand,tGrand,tb,cSum,sSum,final: cSum!=null&&sSum!=null? roundW(cSum+sSum) : null}); }
       else { /* absent: speaking counts as 0, only the group's content score counts */
         const grand=st.contentTotal; const tG=ts&&ts.content!=null? ts.content : null;
-        rows.push({gi,si,sess,st,sp:{sp:p},absent:true,grand,tGrand:tG,tb:ts&&ts.by,final: grand!=null&&tG!=null? roundW(wMix(tG,grand)) : null}); } }); });
+        rows.push({gi,si,sess,st,sp:{sp:p},absent:true,grand,tGrand:tG,tb,cSum,sSum:0,final: cSum!=null? roundW(cSum) : null}); } }); });
   if(sort==='number') rows.sort((a,b)=>{ const na=parseInt(a.sp.sp.number,10), nb=parseInt(b.sp.sp.number,10);
     const ax=isNaN(na)?1e9:na, bx=isNaN(nb)?1e9:nb; return ax-bx || String(a.sp.sp.name).localeCompare(String(b.sp.sp.name),'ko'); });
-  /* each criterion: teacher 70% + student average 30%; if the teacher hasn't scored it yet, show the student average greyed out */
-  const mix=(sAvg,t)=> sAvg==null||t==null? null : wMix(t,sAvg);
-  const cell=(sAvg,t)=> t==null? `<td class="num pend" title="교사 점수가 없어 학생 평균만 보여요">${f1(sAvg)}</td>` : `<td class="num" title="교사 ${t} · 학생 평균 ${f1(sAvg)}">${f1(mix(sAvg,t))}</td>`;
-  const subC=(sTot,crits,tget)=>{ const ts=crits.map(tget); if(ts.some(x=>x==null)) return `<td class="num sub pend" title="교사 점수가 없어 학생 평균만 보여요">${f1(sTot)}</td>`; const v=crits.reduce((a,x,i)=>{ const m=mix(x.avg,ts[i]); return a==null||m==null? null : a+m; },0); return `<td class="num sub">${f1(v)}</td>`; };
+  /* each criterion: teacher 70% + student average 30%; teacher-only criteria (or ones no student scored): teacher 100%.
+     If the teacher hasn't scored a criterion yet, show the student average greyed out (or '–' for teacher-only) */
+  const cell=(x,t)=>{ const only=x.c.teacherOnly||x.avg==null;
+    if(t==null) return only? `<td class="num pend" title="교사만 평가하는 항목이에요. 교사 평가 탭에서 점수를 넣어 주세요">–</td>` : `<td class="num pend" title="교사 점수가 없어 학생 평균만 보여요">${f1(x.avg)}</td>`;
+    return only? `<td class="num tonly" title="학생 평가가 없는 항목 · 교사 점수 100%">${f1(t)}</td>` : `<td class="num" title="교사 ${t} · 학생 평균 ${f1(x.avg)}">${f1(wMix(t,x.avg))}</td>`; };
+  const subC=(sTot,sum)=> sum==null? `<td class="num sub pend" title="교사 점수가 다 들어가지 않아 학생 평균만 보여요">${f1(sTot)}</td>` : `<td class="num sub">${f1(sum)}</td>`;
   const colCount=4+R.content.length+R.speaking.length+5;
   let body=''; let lastG=-1;
   for(const r of rows){
@@ -912,9 +925,9 @@ function tStudents(cls){
     body+=`<tr class="${r.absent?'absent-row':''}">
       <td class="mono">${esc(sp.sp.number||'–')}</td><td><strong>${esc(sp.sp.name)}</strong>${r.absent?' <span class="tag flag">불참</span>':''}</td>
       ${sort==='number'?`<td class="muted">${esc(r.sess.title)}</td>`:''}
-      ${r.st.content.map(x=>cell(x.avg, r.tb&&r.tb.content[x.c.id])).join('')}${subC(r.st.contentTotal, r.st.content, x=>r.tb&&r.tb.content[x.c.id])}
+      ${r.st.content.map(x=>cell(x, r.tb&&r.tb.content[x.c.id])).join('')}${subC(r.st.contentTotal, r.cSum)}
       ${r.absent? R.speaking.map(()=>zero).join('')+`<td class="num sub zero" title="불참이라 발표 점수는 0점이에요">0</td>`
-        : sp.crits.map(x=>cell(x.avg, r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])).join('')+subC(sp.total, sp.crits, x=>r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])}
+        : sp.crits.map(x=>cell(x, r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])).join('')+subC(sp.total, r.sSum)}
       <td class="num muted">${r.st.n}</td>
       <td class="num">${f1(r.grand)}</td>
       <td class="num">${r.tGrand==null?'<span class="muted" title="교사 평가 탭에서 점수를 넣어 주세요">–</span>':r.tGrand}</td>
@@ -922,7 +935,7 @@ function tStudents(cls){
 </tr>`;
   }
   return `<div class="stack">
-    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">항목별 점수와 소계도 <strong>교사 점수×0.7 + 학생 평균×0.3</strong>로 계산해요(소수 첫째 자리까지). 아직 교사 점수가 없는 칸은 <span class="pend">흐린 글씨</span>로 학생 평균만 보여 줘요. 내용·구성은 모둠 점수라 같은 모둠 학생에게 똑같이 들어가요. 최종 점수는 1의 자리까지 반올림해요. <strong>불참 학생</strong>은 발표(개인) 점수를 0점으로 하고 모둠의 내용·구성 점수만 반영해요.</p></div>
+    <div class="sec-head"><div class="stack" style="gap:2px"><h2>학생별 점수</h2><p class="muted small">항목별 점수와 소계도 <strong>교사 점수×0.7 + 학생 평균×0.3</strong>로 계산해요(소수 첫째 자리까지). 아직 교사 점수가 없는 칸은 <span class="pend">흐린 글씨</span>로 학생 평균만 보여 줘요. 내용·구성은 모둠 점수라 같은 모둠 학생에게 똑같이 들어가요. 최종 점수는 1의 자리까지 반올림해요. <strong>불참 학생</strong>은 발표(개인) 점수를 0점으로 하고 모둠의 내용·구성 점수만 반영해요. 학생 평가에는 없고 <strong>교사만 평가하는 항목</strong>은 <span class="tonly">교사 점수 100%</span>로 반영해요.</p></div>
       <div class="chips" role="group" aria-label="정렬"><button class="chip" aria-pressed="${sort==='group'}" data-act="sortStudents" data-sort="group">모둠순</button><button class="chip" aria-pressed="${sort==='number'}" data-act="sortStudents" data-sort="number">번호순</button></div></div>
     <div class="card tblwrap" style="padding:0">
       <table class="data stu">
@@ -945,7 +958,9 @@ function tRaters(cls){
   const ss=sessionsOf(cls.id);
   if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
   let sid=S.view.sid; if(!sid||!S.sessions[sid]||S.sessions[sid].classId!==cls.id){ sid=(ss.find(s=>s.status==='open')||ss.find(s=>submitCount(s.id,cls.id))||ss[0]).id; S.view.sid=sid; }
-  const st=sessionStats(sid); const R=st.R;
+  const st0=sessionStats(sid);
+  const st={...st0, content:st0.content.filter(x=>isStuCrit(x.c)), speaking:st0.speaking.map(s=>({...s, crits:s.crits.filter(x=>isStuCrit(x.c))}))};
+  const R={...st0.R, content:st0.R.content.filter(isStuCrit), speaking:st0.R.speaking.filter(isStuCrit)};
   const [lab,pc]=STATUS[st.sess.status||'ready'];
   const sc=v=>v&&typeof v.score==='number'?v.score:null;
   const sum=a=>{ const b=a.filter(x=>x!=null); return b.length?b.reduce((x,y)=>x+y,0):null; };
@@ -1023,7 +1038,7 @@ function reportMetaHTML(){
 function reportPreviewHTML(){ const rep=buildReport(S.reportDraft.sid); return rep?renderReport(rep):''; }
 
 function renderReport(rep){
-  const bar=(x)=>`<div class="barrow"><span class="lab">${esc(x.name)}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.max}</span></div>`;
+  const bar=(x)=>`<div class="barrow"><span class="lab">${esc(x.name)}${x.only?' <span class="muted small">(선생님 평가)</span>':''}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.max}</span></div>`;
   const quotes=(arr)=>arr&&arr.length?`<div class="qbox"><h3 class="h3">친구들의 종합 의견 <span class="muted small">익명 · ${arr.length}개</span></h3><ul class="quotes">${arr.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`:'';
   const basis=rep.weighted===undefined? '' : rep.weighted? ' · 점수: 선생님 70% + 친구 평균 30%' : ' · 점수: 친구 평가 평균';
   return `<article class="report">
@@ -1123,10 +1138,10 @@ function evalProgress(){
   const d=S.evalDraft, sess=S.sessions[d.sid], R=S.classes[sess.classId].rubric;
   let total=0, done=0; const missing=[];
   const okR=t=>(t||'').trim().length>=REASON_MIN;
-  for(const c of R.content){ total++; const v=d.content[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`내용·구성 – ${c.name} 점수`); }
+  for(const c of R.content.filter(isStuCrit)){ total++; const v=d.content[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`내용·구성 – ${c.name} 점수`); }
 
   for(const sp of (sess.speakers||[]).filter(x=>!x.absent)){
-    for(const c of R.speaking){ total++; const v=d.speaking[sp.id]?.[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`${sp.name} – ${c.name} 점수`); }
+    for(const c of R.speaking.filter(isStuCrit)){ total++; const v=d.speaking[sp.id]?.[c.id]; if(v&&typeof v.score==='number') done++; else missing.push(`${sp.name} – ${c.name} 점수`); }
   }
   total++; if(okR(d.contentReason)) done++; else missing.push('종합 의견');
   return {total, done, missing};
@@ -1154,11 +1169,11 @@ function sEval(){
     <div class="note info">항목마다 점수를 고르고, 맨 아래에 이 모둠 발표에 대한 종합 의견을 한 문장 이상 적어 주세요. 평가 내용은 선생님만 보고, 친구들에게는 선생님이 정리한 리포트만 보여 줘요. 친구가 읽는다고 생각하고 존중하는 말로 써 주세요.</div>
     ${S.preview?`<div class="note">미리보기 화면이에요. 제출해도 저장되지 않아요.</div>`:''}
     <section class="stack"><h2>내용·구성 <span class="muted small">모둠 전체 평가</span></h2>
-      ${R.content.map(c=>critHTML(c, d.content[c.id], `c-${c.id}`, `c|${c.id}`)).join('')}
+      ${R.content.filter(isStuCrit).map(c=>critHTML(c, d.content[c.id], `c-${c.id}`, `c|${c.id}`)).join('')}
 </section>
     <section class="stack"><h2>발표 <span class="muted small">발표자마다 따로 평가</span></h2>
       ${(sess.speakers||[]).filter(x=>!x.absent).map(sp=>`<div class="spkblock"><div class="spkname"><span class="av">${esc((sp.name||'?').slice(0,1))}</span>${esc(sp.name)}</div>
-        ${R.speaking.map(c=>critHTML(c, d.speaking[sp.id]?.[c.id], `s-${sp.id}-${c.id}`, `s|${sp.id}|${c.id}`)).join('')}</div>`).join('')}</section>
+        ${R.speaking.filter(isStuCrit).map(c=>critHTML(c, d.speaking[sp.id]?.[c.id], `s-${sp.id}-${c.id}`, `s|${sp.id}|${c.id}`)).join('')}</div>`).join('')}</section>
     <section class="stack"><h2>종합 의견 <span class="muted small">내용 + 발표</span></h2>
       ${reasonHTML('r-content','c','이 모둠 발표에서 잘한 점과 더 좋아질 점을 한 문장 이상 적어 주세요.',d.contentReason)}</section>
     <div id="evErr" class="err-list">${S.evalTried&&pg.missing.length?`아직 덜 채운 항목: ${esc(pg.missing.join(', '))} (종합 의견은 ${REASON_MIN}자 이상)`:''}</div>
@@ -1401,6 +1416,7 @@ document.addEventListener('change',e=>{
   if(t.dataset.ev!==undefined){ setEval(t.dataset.ev,'score',Number(t.value)); return; }
   if(t.dataset.tev!==undefined){ setTeval(t.dataset.tev, Number(t.value)); return; }
   if(t.dataset.rb){ const [k,i,f]=t.dataset.rb.split('|'); const c=S.rubricDraft.rubric[k][+i];
+    if(f==='teacherOnly'){ if(t.checked) c.teacherOnly=true; else delete c.teacherOnly; S.rubricDraft.dirty=true; render(); return; }
     if(f==='max'||f==='min'){ c[f]=t.value; normCrit(c); S.rubricDraft.dirty=true; render(); }
     else if(f==='step'){ if(t.value==='custom'){ c.steps=scoresOf(c); c.step='custom'; } else { c.step=t.value; c.steps=null; } normCrit(c); S.rubricDraft.dirty=true; render(); }
     return; }

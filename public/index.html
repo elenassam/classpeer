@@ -243,6 +243,7 @@ table.rat tr.flagrow td{background:var(--pen-soft)}
 .spcard{border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
 .rp-wrap{max-width:760px;width:100%;margin:0 auto}
 .qbox{display:flex;flex-direction:column;gap:8px}
+.tcomment .summary{border-left:4px solid var(--accent);background:var(--accent-soft)}
 .final-row{display:flex;align-items:baseline;gap:8px;justify-content:flex-end;border-top:1px dashed var(--line);padding-top:10px}
 .final-row strong{font-family:var(--f-mono);font-size:24px}
 .pdf-hold{position:fixed;left:-10000px;top:0;width:718px;pointer-events:none}
@@ -507,7 +508,8 @@ function buildReport(sid){
     sid, classId:st.cls.id, title:st.sess.title, topic:st.sess.topic||'', n:st.n, weighted,
     content, contentComments: st.contentComments.filter(keep).map(c=>c.text),
     contentTotal, contentMax: st.contentMax, speakers,
-    absent: st.absent.map(p=>p.name)
+    absent: st.absent.map(p=>p.name),
+    teacherComment: ((S.tevals[sid]&&S.tevals[sid].comment)||'').trim()
   };
 }
 
@@ -848,7 +850,7 @@ function tTeval(cls){
   if(!ss.length) return `<div class="empty">발표 세션을 먼저 추가해 주세요.</div>`;
   let sid=S.view.sid; if(!sid||!S.sessions[sid]||S.sessions[sid].classId!==cls.id){ sid=(ss.find(s=>s.status==='open')||ss[0]).id; S.view.sid=sid; }
   const sess=S.sessions[sid], R=cls.rubric;
-  if(!S.tevalDraft||S.tevalDraft.sid!==sid){ const ex=S.tevals[sid]; S.tevalDraft={sid, content:clone(ex&&ex.content||{}), speaking:clone(ex&&ex.speaking||{}), dirty:false}; }
+  if(!S.tevalDraft||S.tevalDraft.sid!==sid){ const ex=S.tevals[sid]; S.tevalDraft={sid, content:clone(ex&&ex.content||{}), speaking:clone(ex&&ex.speaking||{}), comment:(ex&&ex.comment)||'', dirty:false}; }
   const d=S.tevalDraft; const pg=tevalProgress();
   const done=s=>{ const t=teacherScores(s.id); if(!t) return false; return t.content!=null && (s.speakers||[]).filter(x=>!x.absent).every(x=>t.speakers[x.id]!=null); };
   const critHTML=(c, v, nameKey, path)=>`<div class="card crit-card">
@@ -866,6 +868,10 @@ function tTeval(cls){
         ${(sess.speakers||[]).filter(x=>!x.absent).map(sp=>`<div class="spkblock"><div class="spkname"><span class="av">${esc((sp.name||'?').slice(0,1))}</span>${esc(sp.name)}</div>
           ${R.speaking.map(c=>critHTML(c, d.speaking[sp.id]&&d.speaking[sp.id][c.id], `ts-${sp.id}-${c.id}`, `s|${sp.id}|${c.id}`)).join('')}</div>`).join('')||'<p class="muted small">발표자가 없어요.</p>'}</section>
     </div>
+    <section class="card stack" style="gap:8px">
+      <label class="fld"><span><strong>선생님 피드백</strong> <span class="muted small">주관식 · 이 모둠 발표에 대한 의견을 자유롭게 적어 주세요. 피드백 리포트와 PDF에 '선생님 피드백'으로 실려요.</span></span>
+        <textarea id="tevComment" data-tevc rows="6" maxlength="3000" placeholder="잘한 점: …&#10;더 나아지려면: …">${esc(d.comment||'')}</textarea></label>
+    </section>
     <div class="submitbar">
       <div class="prog"><span id="tevProgTxt">${pg.done} / ${pg.total} 항목 · ${d.dirty?'저장하지 않은 변경 사항이 있어요':(S.tevals[sid]?'저장됨':'아직 저장 안 함')}</span><div class="track"><div class="fill" id="tevProgBar" style="width:${pg.total?pg.done/pg.total*100:0}%"></div></div></div>
       <button class="btn ghost" data-act="tevReset" ${d.dirty?'':'disabled'}>되돌리기</button>
@@ -1022,6 +1028,7 @@ function renderReport(rep){
   const basis=rep.weighted===undefined? '' : rep.weighted? ' · 점수: 선생님 70% + 친구 평균 30%' : ' · 점수: 친구 평가 평균';
   return `<article class="report">
     <header><span class="eyebrow">종합 피드백 리포트</span><h1>${esc(rep.title)}</h1><p class="muted small">${rep.topic?esc(rep.topic)+' · ':''}친구 ${rep.n}명이 평가했어요${basis}</p></header>
+    ${rep.teacherComment?`<section class="tcomment"><h2>선생님 피드백</h2><div class="summary">${esc(rep.teacherComment)}</div></section>`:''}
     <section>
       <div class="sec-head"><h2>내용·구성 <span class="muted small">모둠 점수</span></h2><div class="total"><span class="big">${f1(rep.contentTotal)}</span><span class="muted">/ ${rep.contentMax}</span></div></div>
       <div class="bars">${rep.content.map(bar).join('')}</div>
@@ -1356,7 +1363,7 @@ ${JSON.stringify(data)}`;
   tevPick(el){ if(S.tevalDraft&&S.tevalDraft.dirty&&!confirm('저장하지 않은 교사 점수가 있어요. 다른 발표로 넘어갈까요?')) return; S.view.sid=el.dataset.id; S.tevalDraft=null; render(); },
   async tevSave(){
     const d=S.tevalDraft; if(!d) return; const sess=S.sessions[d.sid]; if(!sess) return;
-    const doc={sid:d.sid,classId:sess.classId,content:clone(d.content),speaking:clone(d.speaking),updatedAt:nowISO()};
+    const doc={sid:d.sid,classId:sess.classId,content:clone(d.content),speaking:clone(d.speaking),comment:(d.comment||'').trim(),updatedAt:nowISO()};
     if(await run(()=>S.db.doc('drafts/root/teval/'+d.sid).set(doc),'교사 점수를 저장했어요.')){ S.tevals[d.sid]=doc; d.dirty=false; render(); }
   },
   tevReset(){ S.tevalDraft=null; render(); },
@@ -1408,6 +1415,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.tevc!==undefined&&S.tevalDraft){ S.tevalDraft.comment=t.value; S.tevalDraft.dirty=true; updateTevalBar(); return; }
   if(t.dataset.evr!==undefined){ const p=t.dataset.evr.split('|'); if(p[0]==='c') S.evalDraft.contentReason=t.value; else S.evalDraft.speakerReasons[p[1]]=t.value; setEval(null); return; }
   if(t.dataset.rb){ const [k,i,f]=t.dataset.rb.split('|'); if(f==='name'){ S.rubricDraft.rubric[k][+i].name=t.value; markRubricDirty(); } return; }
   if(t.dataset.rbl){ const [k,i,s]=t.dataset.rbl.split('|'); S.rubricDraft.rubric[k][+i].levels[s]=t.value; markRubricDirty(); return; }

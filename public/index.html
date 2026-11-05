@@ -921,7 +921,7 @@ function tStudents(cls){
     if(t==null) return only? `<td class="num pend" title="교사만 평가하는 항목이에요. 교사 평가 탭에서 점수를 넣어 주세요">–</td>` : `<td class="num pend" title="교사 점수가 없어 학생 평균만 보여요">${f1(x.avg)}</td>`;
     return only? `<td class="num tonly" title="학생 평가가 없는 항목 · 교사 점수 100%">${f1(t)}</td>` : `<td class="num" title="교사 ${t} · 학생 평균 ${f1(x.avg)}">${f1(wMix(t,x.avg))}</td>`; };
   const subC=(sTot,sum)=> sum==null? `<td class="num sub pend" title="교사 점수가 다 들어가지 않아 학생 평균만 보여요">${f1(sTot)}</td>` : `<td class="num sub">${f1(sum)}</td>`;
-  const colCount=2+(sort==='number'?1:0)+R.content.length+1+R.speaking.length+1+2;
+  const colCount=2+(sort==='number'?1:0)+R.content.length+1+R.speaking.length+1+1;
   const marks=(S.bonus[cls.id]&&S.bonus[cls.id].marks)||{};
   let body=''; let lastG=-1;
   for(const r of rows){
@@ -935,7 +935,6 @@ function tStudents(cls){
       ${r.st.content.map(x=>cell(x, r.tb&&r.tb.content[x.c.id])).join('')}${subC(r.st.contentTotal, r.cSum)}
       ${r.absent? R.speaking.map(()=>zero).join('')+`<td class="num sub zero" title="불참이라 개별평가는 0점이에요">0</td>`
         : sp.crits.map(x=>cell(x, r.tb&&r.tb.speaking[sp.sp.id]&&r.tb.speaking[sp.sp.id][x.c.id])).join('')+subC(sp.total, r.sSum)}
-      <td class="num">${r.tGrand==null?'<span class="muted" title="교사 평가 탭에서 점수를 넣어 주세요">–</span>':r.tGrand}</td>
       ${(()=>{ const bk=r.sess.id+'|'+sp.sp.id; const on=!!marks[bk]; const fin=r.final==null? null : r.final+(on?BONUS_PT:0);
         return `<td class="num fin"><div class="gt"><label class="bonus-chk ${on?'on':''}" title="체크하면 최종 점수에 ${BONUS_PT}점을 더해요"><input type="checkbox" data-act-change="toggleBonus" data-key="${esc(bk)}" ${on?'checked':''} aria-label="${esc(sp.sp.name)} 가산점">가산점${on?` +${BONUS_PT}`:''}</label><strong>${fin??'–'}</strong><span class="track"><span class="fill" style="width:${fin==null?0:Math.min(100,fin/(cMax+sMax)*100)}%"></span></span></div></td>`; })()}
 </tr>`;
@@ -946,11 +945,11 @@ function tStudents(cls){
     <div class="card tblwrap" style="padding:0">
       <table class="data stu">
         <thead>
-          <tr class="band"><th colspan="${sort==='number'?3:2}"></th><th colspan="${R.content.length+1}" class="bandc">조별평가</th><th colspan="${R.speaking.length+1}" class="bands">개별평가</th><th colspan="2" class="bandf">총점 /${cMax+sMax}</th></tr>
+          <tr class="band"><th colspan="${sort==='number'?3:2}"></th><th colspan="${R.content.length+1}" class="bandc">조별평가</th><th colspan="${R.speaking.length+1}" class="bands">개별평가</th><th class="bandf">총점 /${cMax+sMax}</th></tr>
           <tr><th>번호</th><th>이름</th>${sort==='number'?'<th>모둠</th>':''}
             ${R.content.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${cMax}</span></th>
             ${R.speaking.map(c=>`<th class="num">${esc(c.name)} <span class="mono">/${c.max}</span></th>`).join('')}<th class="num sub">소계 <span class="mono">/${sMax}</span></th>
-            <th class="num">교사</th><th class="num fin">가산점 · 최종 <span class="muted">(7:3)</span></th></tr>
+            <th class="num fin">가산점 · 최종 <span class="muted">(7:3)</span></th></tr>
         </thead>
         <tbody>${body||`<tr><td colspan="${colCount}" class="muted">발표자가 없어요.</td></tr>`}</tbody>
       </table>

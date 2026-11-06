@@ -1074,7 +1074,8 @@ function reportMetaHTML(){
 }
 function reportPreviewHTML(){ const rep=buildReport(S.reportDraft.sid); return rep?renderReport(rep):''; }
 
-function renderReport(rep){
+function renderReport(rep, opt){
+  const groupOnly=!!(opt&&opt.groupOnly); // PDF: leave out each speaker's individual scores
   const bar=(x)=>`<div class="barrow"><span class="lab">${esc(x.name)}${x.only?' <span class="muted small">(선생님 평가)</span>':''}</span><div class="track"><div class="fill" style="width:${x.avg==null?0:(x.avg/x.max*100)}%"></div></div><span class="val">${f1(x.avg)} / ${x.max}</span></div>`;
   const quotes=(arr)=>arr&&arr.length?`<div class="qbox"><h3 class="h3">친구들의 종합 의견 <span class="muted small">익명 · ${arr.length}개</span></h3><ul class="quotes">${arr.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`:'';
   const basis=rep.weighted===undefined? '' : rep.weighted? ' · 점수: 선생님 70% + 친구 평균 30%' : ' · 점수: 친구 평가 평균';
@@ -1086,7 +1087,7 @@ function renderReport(rep){
       <div class="bars">${rep.content.map(bar).join('')}</div>
       ${rep.groupSummary?`<div class="summary">${esc(rep.groupSummary)}</div>`:''}
     </section>
-    <section>
+    ${groupOnly?'':`<section>
       <h2>개별평가 <span class="muted small">개인 점수</span></h2>
       <div class="spk-grid">${rep.speakers.map(s=>`<div class="spcard">
         <div class="sec-head"><div class="spkname"><span class="av">${esc((s.name||'?').slice(0,1))}</span>${esc(s.name)}</div><div class="total"><span class="big" style="font-size:26px">${f1(s.total)}</span><span class="muted">/ ${s.totalMax}</span></div></div>
@@ -1096,7 +1097,7 @@ function renderReport(rep){
         ${quotes(s.comments)}
       </div>`).join('')}</div>
       ${rep.absent&&rep.absent.length?`<p class="muted small">불참: ${rep.absent.map(esc).join(', ')} (개별평가 0점)</p>`:''}
-    </section>
+    </section>`}
     ${quotes(rep.contentComments)?`<section>${quotes(rep.contentComments)}</section>`:''}
   </article>`;
 }
@@ -1346,7 +1347,7 @@ const A = {
     const root=document.documentElement, prevTheme=root.getAttribute('data-theme');
     const hold=document.createElement('div'); hold.className='pdf-hold'; const box=document.createElement('div'); box.className='pdf-doc';
     const d=new Date(); const today=`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
-    box.innerHTML=reps.map(r=>`<div class="pdf-page"><div class="pdf-title"><strong>${esc(cls.name)}</strong> · 발표 종합 피드백 · ${today}</div>${renderReport(r)}</div>`).join('');
+    box.innerHTML=reps.map(r=>`<div class="pdf-page"><div class="pdf-title"><strong>${esc(cls.name)}</strong> · 발표 종합 피드백 · ${today}</div>${renderReport(r,{groupOnly:true})}</div>`).join('');
     try{
       await loadPdfLib();
       root.setAttribute('data-theme','light'); hold.appendChild(box); document.body.appendChild(hold);

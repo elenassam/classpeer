@@ -252,8 +252,26 @@ table.rat tr.flagrow td{background:var(--pen-soft)}
 .final-row strong{font-family:var(--f-mono);font-size:24px}
 .pdf-hold{position:fixed;left:-10000px;top:0;width:718px;pointer-events:none}
 .pdf-doc{background:#fff}
-.pdf-doc .report{border:0;border-radius:0;padding:8px 4px}
+.pdf-page .report{border:0;border-radius:0;padding:8px 4px}
 .pdf-title{font-size:12px;color:#666;margin:0 4px 6px}
+.spk-grid{display:flex;flex-direction:column;gap:14px}
+/* PDF: one group per page — tighter layout, speakers and comments in two columns, then shrink to fit A4 if needed */
+.pdf-page{width:718px;background:#fff;padding:0 2px 6px}
+.pdf-page .report{gap:12px}
+.pdf-page .report h1{font-size:22px}
+.pdf-page .report h2{font-size:17px}
+.pdf-page .report header{padding-bottom:8px;gap:2px}
+.pdf-page .report section{gap:8px}
+.pdf-page .bars{gap:5px}
+.pdf-page .spk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pdf-page .spcard{padding:10px 12px;gap:8px}
+.pdf-page .spcard .spkname{font-size:16px}
+.pdf-page .spcard .big{font-size:20px!important}
+.pdf-page .final-row{padding-top:6px}
+.pdf-page .final-row strong{font-size:18px}
+.pdf-page .summary{padding:8px 10px;font-size:13px}
+.pdf-page .quotes{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px}
+.pdf-page .quotes li{font-size:12px;padding:1px 0 1px 8px}
 details.more summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:500}
 
 .sharebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sky-soft);border-radius:var(--r);padding:12px 14px}
@@ -1056,13 +1074,13 @@ function renderReport(rep){
     </section>
     <section>
       <h2>개별평가 <span class="muted small">개인 점수</span></h2>
-      ${rep.speakers.map(s=>`<div class="spcard">
+      <div class="spk-grid">${rep.speakers.map(s=>`<div class="spcard">
         <div class="sec-head"><div class="spkname"><span class="av">${esc((s.name||'?').slice(0,1))}</span>${esc(s.name)}</div><div class="total"><span class="big" style="font-size:26px">${f1(s.total)}</span><span class="muted">/ ${s.totalMax}</span></div></div>
         <div class="bars">${s.crits.map(bar).join('')}</div>
         ${s.final!=null&&s.final!==undefined?`<div class="final-row"><span>최종 점수 <span class="muted small">(조별평가 + 개별평가, 반올림${s.bonus?` · 가산점 +${s.bonus} 포함`:''})</span></span><strong>${s.final}</strong><span class="muted">/ ${s.finalMax}</span></div>`:''}
         ${s.summary?`<div class="summary">${esc(s.summary)}</div>`:''}
         ${quotes(s.comments)}
-      </div>`).join('')}
+      </div>`).join('')}</div>
       ${rep.absent&&rep.absent.length?`<p class="muted small">불참: ${rep.absent.map(esc).join(', ')} (개별평가 0점)</p>`:''}
     </section>
     ${quotes(rep.contentComments)?`<section>${quotes(rep.contentComments)}</section>`:''}
@@ -1312,17 +1330,22 @@ const A = {
     const root=document.documentElement, prevTheme=root.getAttribute('data-theme');
     const hold=document.createElement('div'); hold.className='pdf-hold'; const box=document.createElement('div'); box.className='pdf-doc';
     const d=new Date(); const today=`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
-    box.innerHTML=reps.map((r,i)=>`<div class="pdf-page">${i===0?`<div class="pdf-title"><strong>${esc(cls.name)}</strong> · 발표 종합 피드백 · ${today}</div>`:''}${renderReport(r)}</div>`).join('');
+    box.innerHTML=reps.map(r=>`<div class="pdf-page"><div class="pdf-title"><strong>${esc(cls.name)}</strong> · 발표 종합 피드백 · ${today}</div>${renderReport(r)}</div>`).join('');
     try{
       await loadPdfLib();
       root.setAttribute('data-theme','light'); hold.appendChild(box); document.body.appendChild(hold);
-      await window.html2pdf().set({
-        margin:[10,10,12,10], filename:`${cls.name.replace(/[\\/:*?"<>|]/g,'_')}_종합피드백.pdf`,
-        image:{type:'jpeg',quality:0.95},
-        html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
-        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-        pagebreak:{mode:['css'], before:'.pdf-page + .pdf-page', avoid:['.barrow','.spcard .sec-head','.quotes li','.final-row','.report header','.qbox h3']}
-      }).from(box).save();
+      /* each group's report becomes exactly one A4 page: capture it as an image, then scale it to fit inside the page margins */
+      const M=10, PW=210-2*M, PH=297-2*M;
+      const blank=document.createElement('div'); blank.style.cssText='width:10px;height:10px;background:#fff'; hold.appendChild(blank);
+      const pdf=await window.html2pdf().set({margin:0,jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},html2canvas:{scale:1}}).from(blank).toPdf().get('pdf');
+      const pages=[...box.querySelectorAll('.pdf-page')];
+      for(let i=0;i<pages.length;i++){
+        const canvas=await window.html2pdf().set({html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'}}).from(pages[i]).toCanvas().get('canvas');
+        let w=PW, h=PW*canvas.height/canvas.width; if(h>PH){ w=w*PH/h; h=PH; }
+        if(i>0) pdf.addPage('a4','portrait'); else { pdf.setFillColor(255,255,255); pdf.rect(0,0,210,297,'F'); }
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',M+(PW-w)/2,M,w,h);
+      }
+      pdf.save(`${cls.name.replace(/[\\/:*?"<>|]/g,'_')}_종합피드백.pdf`);
       toast('PDF를 내려받았어요.');
     }catch(e){ console.error(e); toast('PDF를 만들지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.',true); }
     finally{ hold.remove(); if(prevTheme==null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme',prevTheme); S.pdfBusy=false; const b=$('#pdfBtn'); if(b){ b.disabled=false; b.textContent='반 전체 PDF 내려받기'; } }
